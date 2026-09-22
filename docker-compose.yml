@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./data/runtime:/app/data/runtime
+      - ./data/documents:/app/data/documents:ro
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./web
+    depends_on:
+      - api
+    ports:
+      - "3000:80"

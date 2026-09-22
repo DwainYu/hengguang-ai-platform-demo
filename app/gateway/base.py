@@ -1,0 +1,1 @@
+"""ModelProvider / ModelResponse protocol definitions."""

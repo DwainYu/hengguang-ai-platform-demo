@@ -1,0 +1,14 @@
+{
+  "users": [
+    {"username": "admin_demo", "role": "admin", "token": "demo-admin-token"},
+    {"username": "manager_demo", "role": "manager", "token": "demo-manager-token"},
+    {"username": "operator_demo", "role": "operator", "token": "demo-operator-token"}
+  ],
+  "suppliers": [],
+  "materials": [],
+  "purchase_orders": [],
+  "inventory": [],
+  "safety_incidents": [],
+  "equipment": [],
+  "maintenance_records": []
+}
