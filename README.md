@@ -27,7 +27,14 @@ Web UI -> FastAPI -> Agent Router
 
 ## 当前状态
 
-项目骨架已初始化（目录结构、uv 项目、FastAPI `/health`、前端 3 页占位、Docker Compose）。
+✅ **Day 1 完成**：Model Gateway + MockProvider + `/api/chat` + pytest 全通过
+
+- Model Gateway 抽象层（`app/gateway/`）
+- MockProvider 无需 API Key 即可运行
+- OpenAI-compatible Provider 预留扩展（DeepSeek/Qwen/Ollama）
+- `/health`、`/api/models`、`/api/chat` 三个核心端点
+- 单元/集成测试 31 个全部通过
+
 按 SPEC 第 14 节的 5 天计划逐步实现：Day 1 Platform Skeleton → Day 5 UI + Packaging。
 
 ## Quick Start
@@ -48,14 +55,47 @@ cp .env.example .env
 docker compose up -d                    # API :8000, Web :3000
 ```
 
+## API 示例
+
+```bash
+# 健康检查
+curl http://localhost:8000/health
+# {"status":"ok","version":"0.1.0"}
+
+# 模型列表
+curl http://localhost:8000/api/models
+# {"models":[{"provider":"mock","model":"mock-model","enabled":true}]}
+
+# 聊天（自动使用 MockProvider）
+curl -X POST http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "你好"}'
+# {"request_id":"req_xxx","answer":"你好！我是恒光 AI 平台的模拟助手...","mode":"auto","model":"mock-model","provider":"mock","latency_ms":0,"sources":[],"tool_calls":[]}
+
+# Demo 场景查询
+curl -X POST http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "恒光主要有哪些业务？"}'
+
+curl -X POST http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "最近30天原材料采购价格有什么变化？"}'
+
+curl -X POST http://localhost:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "最近一个月哪个区域安全问题最多？"}'
+```
+
 ## Demo Scenarios（目标）
 
 | 场景 | 输入 | 走通 |
 |---|---|---|
-| 企业知识 RAG | 恒光主要有哪些业务？ | knowledge_search |
-| ERP 分析 | 最近30天原材料采购价格有什么变化？ | erp_purchase_analysis |
-| 安全分析 | 最近一个月哪个区域安全问题最多？ | safety_incident_analysis |
-| 综合分析 | A车间最近安全问题为什么增加？相关制度有哪些？ | Safety + Knowledge + LLM |
+| 企业知识 RAG | 恒光主要有哪些业务？ | knowledge_search (Day 2) |
+| ERP 分析 | 最近30天原材料采购价格有什么变化？ | erp_purchase_analysis (Day 3) |
+| 安全分析 | 最近一个月哪个区域安全问题最多？ | safety_incident_analysis (Day 3) |
+| 综合分析 | A车间最近安全问题为什么增加？相关制度有哪些？ | Safety + Knowledge + LLM (Day 3) |
+
+> Day 1 仅通过 MockProvider 返回预设答案；Day 2-3 将接入真实 RAG/Tool。
 
 ## 数据边界
 
