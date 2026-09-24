@@ -66,6 +66,13 @@ class KnowledgeService:
     def list_documents(self) -> list[DocumentSummary]:
         return summarize_documents(self.store)
 
+    def get_document(self, document_id: str) -> DocumentSummary | None:
+        """Minimal by-ID lookup over the document listing (used by the Day-3 tool)."""
+        return next(
+            (item for item in self.list_documents() if item.document_id == document_id),
+            None,
+        )
+
     async def search(
         self,
         query: str,

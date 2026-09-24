@@ -2,12 +2,47 @@
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
 import httpx
 
-from app.gateway.base import BaseProvider, ModelResponse
+from app.gateway.base import BaseProvider, ModelResponse, ToolCall
+
+
+def parse_tool_calls(raw: object, *, fallback_prefix: str = "call") -> list[ToolCall]:
+    """Parse OpenAI-format ``tool_calls`` into ToolCall objects.
+
+    Tolerates missing ids/names and malformed JSON arguments: the agent loop's
+    argument validation turns those into controlled ToolResult failures.
+    """
+    calls: list[ToolCall] = []
+    for index, item in enumerate(raw or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        function = item.get("function") or {}
+        name = str(function.get("name") or "").strip()
+        if not name:
+            continue
+        raw_arguments = function.get("arguments")
+        if isinstance(raw_arguments, str) and raw_arguments.strip():
+            try:
+                arguments = json.loads(raw_arguments)
+            except json.JSONDecodeError:
+                arguments = {}
+        elif isinstance(raw_arguments, dict):
+            arguments = raw_arguments
+        else:
+            arguments = {}
+        calls.append(
+            ToolCall(
+                id=str(item.get("id") or f"{fallback_prefix}_{index}"),
+                name=name,
+                arguments=arguments if isinstance(arguments, dict) else {},
+            )
+        )
+    return calls
 
 
 class OpenAICompatibleProvider(BaseProvider):
@@ -51,11 +86,12 @@ class OpenAICompatibleProvider(BaseProvider):
 
     async def _chat_impl(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         model: str,
         temperature: float,
         response_format: dict | None,
+        tools: list[dict] | None = None,
     ) -> ModelResponse:
         start = time.perf_counter()
 
@@ -67,6 +103,9 @@ class OpenAICompatibleProvider(BaseProvider):
         }
         if response_format:
             payload["response_format"] = response_format
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
 
         url = f"{self._base_url}/chat/completions"
         resp = await self._client.post(url, json=payload)
@@ -75,9 +114,10 @@ class OpenAICompatibleProvider(BaseProvider):
 
         latency_ms = int((time.perf_counter() - start) * 1000)
 
-        # OpenAI-compatible response format
+        # OpenAI-compatible response format: text and/or tool calls
         choice = data["choices"][0]
-        content = choice["message"]["content"]
+        message = choice.get("message") or {}
+        content = message.get("content") or ""
         usage = data.get("usage")
 
         return ModelResponse(
@@ -86,6 +126,7 @@ class OpenAICompatibleProvider(BaseProvider):
             provider=self.provider_name,
             usage=usage,
             latency_ms=latency_ms,
+            tool_calls=parse_tool_calls(message.get("tool_calls")),
         )
 
     async def close(self) -> None:

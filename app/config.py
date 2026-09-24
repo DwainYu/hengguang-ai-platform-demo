@@ -65,6 +65,9 @@ class Settings:
     rag_min_score: float = field(
         default_factory=lambda: float(os.environ.get("RAG_MIN_SCORE", "0.10"))
     )
+    # Agent runtime safety limits (Day 3)
+    agent_max_steps: int = field(default_factory=lambda: _env_int("AGENT_MAX_STEPS", 5))
+    agent_max_tool_calls: int = field(default_factory=lambda: _env_int("AGENT_MAX_TOOL_CALLS", 8))
 
     @property
     def is_mock_llm(self) -> bool:

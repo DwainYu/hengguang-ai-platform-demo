@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.config import settings
 from app.gateway.base import ModelProvider, ModelResponse
 from app.gateway.mock import MockProvider
@@ -14,9 +16,10 @@ class ModelGateway:
     Business code MUST use this gateway, never import providers directly.
     """
 
-    def __init__(self) -> None:
-        self._providers: dict[str, ModelProvider] = {}
-        self._init_providers()
+    def __init__(self, providers: dict[str, ModelProvider] | None = None) -> None:
+        self._providers: dict[str, ModelProvider] = providers if providers is not None else {}
+        if providers is None:
+            self._init_providers()
 
     def _init_providers(self) -> None:
         """Initialize providers based on configuration."""
@@ -44,12 +47,13 @@ class ModelGateway:
 
     async def chat(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         model: str | None = None,
         provider: str | None = None,
         temperature: float = 0.2,
         response_format: dict | None = None,
+        tools: list[dict] | None = None,
     ) -> ModelResponse:
         """Chat with the configured provider, with automatic fallback."""
         prov = self.get_provider(provider)
@@ -59,6 +63,7 @@ class ModelGateway:
                 model=model or settings.llm_model,
                 temperature=temperature,
                 response_format=response_format,
+                tools=tools,
             )
         except Exception as e:
             # Fallback to mock on failure if not already using mock
@@ -70,6 +75,7 @@ class ModelGateway:
                         model=model or settings.llm_model,
                         temperature=temperature,
                         response_format=response_format,
+                        tools=tools,
                     )
             raise RuntimeError(f"Model provider error: {e}") from e
 
