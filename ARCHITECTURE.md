@@ -34,8 +34,9 @@
 | 组件 | 模块 | 说明 |
 |---|---|---|
 | Model Gateway | `app/gateway/` | 统一 LLM 访问层。业务代码只依赖 `ModelGateway`，不直接 import provider SDK。默认 `MockProvider`，可切 OpenAI-compatible（DeepSeek/Qwen/Ollama）。 |
-| Embedding | `app/embeddings/` | 可替换 `EmbeddingProvider` 抽象，默认 mock，支持 OpenAI-compatible / Ollama。 |
-| RAG | `app/rag/` | Markdown chunk（800–1200 字，overlap 100–200），Chroma persistent client，top_k=5，检索结果必须带 document_id / title / page / section / source / score。 |
+| Embedding | `app/embeddings/` | 可替换 `EmbeddingProvider` 抽象（`embed_documents` / `embed_query`）。默认离线 `MockEmbeddingProvider`（hash n-gram，零 API Key），可切 OpenAI-compatible `/embeddings`（`app/embeddings/openai_compatible.py`）。`build_embedding_provider()` 按配置构造。 |
+| RAG | `app/rag/` | ingest（`ingest.py` + `extractor.py`：Markdown/TXT/PDF）→ heading 感知 chunk（`chunker.py`：800–1200 字，overlap 100–200）→ embedding → Chroma persistent client（`store.py`）→ 混合检索（`retriever.py`：向量 + 词面重合融合，top_k=5）→ 带 `[n]` 引用的回答（`pipeline.py` + `prompt.py`）。检索结果必须带 document_id / title / section / page / source / score；找不到依据时回答「知识库没有足够信息」。 |
+| 知识库服务 | `app/services/knowledge_service.py` | 组合 ingest / documents / search 三个用例；API 通过 `get_knowledge_service` 依赖注入，测试可指向临时 Chroma 目录与 mock embedding。 |
 | Agent | `app/agent/` | 规则路由 baseline + LLM 工具选择增强（失败必须回退规则路由）。工具白名单：`knowledge_search`、`erp_purchase_analysis`、`safety_incident_analysis`（+ 可选 `equipment_maintenance_lookup`）。 |
 | 业务数据库 | `app/db/` + `data/synthetic/` | SQLite + 合成数据。查询全部使用参数化 SQL / 固定 query function，禁止 LLM 生成任意 SQL。 |
 | RBAC | `app/auth/` | 简单 Bearer Token，三角色：admin / manager / operator。 |
@@ -44,4 +45,6 @@
 ## 安全边界
 
 - 高风险业务只做分析 / 辅助决策，不接真实 DCS，不做工业控制。
+- 知识库只允许公开资料（SPEC 6.1）；`data/documents/` 每篇文档带 YAML front matter
+  （document_id / title / source / url / published_at），README.md 与不支持的类型跳过。
 - 不提交任何 secret 到 Git；`.env` 默认全部 mock，无需 key 即可运行测试与 UI。

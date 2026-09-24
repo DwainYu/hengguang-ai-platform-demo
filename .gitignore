@@ -18,3 +18,4 @@ data/runtime/*
 
 # OS
 .DS_Store
+.codegraph/

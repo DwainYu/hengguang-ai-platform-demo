@@ -16,11 +16,19 @@
 
 ## Step 3 — 90 秒：RAG
 
-输入：`恒光主要有哪些业务？`
+先 ingest（首次启动执行一次）：
 
-展示回答、sources、page / section。
+```bash
+curl -X POST http://localhost:8000/api/knowledge/ingest -H 'Content-Type: application/json' -d '{}'
+```
 
-> 这里不是让模型凭记忆回答，而是先从企业公开资料中召回内容，再让模型生成带引用的回答。
+输入：`恒光主要有哪些业务？`（`POST /api/knowledge/search`）
+
+展示回答、`citations`（来源 title + section）、每个 chunk 的 document_id / score / content。
+
+> 这里不是让模型凭记忆回答，而是先从企业公开资料（公司公开简介、2025 年报、2026 半年报）中
+> 召回 Top-K chunks，再让模型基于检索内容生成带 [n] 引用的回答；
+> 问知识库里没有的问题时，系统明确说明「当前知识库没有足够信息」。
 
 ## Step 4 — 90 秒：ERP Agent
 

@@ -2,15 +2,116 @@
 
 from __future__ import annotations
 
+import re
 import time
 
 from app.gateway.base import BaseProvider, ModelResponse
+from app.rag.prompt import CONTEXT_HEADER, NO_CONTEXT_BODY
+
+_CITATION_LINE_RE = re.compile(r"^\[(\d+)\]\s+(.*)$")
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？；])")
+_MAX_CITED_SOURCES = 3
+_MAX_SENTENCE_CHARS = 120
+
+
+def _find_rag_context(messages: list[dict[str, str]]) -> str | None:
+    """Return the retrieved-context block if the prompt carries one."""
+    for msg in messages:
+        content = msg.get("content", "") or ""
+        if content.startswith(CONTEXT_HEADER):
+            return content
+    return None
+
+
+def _parse_context(block: str) -> list[tuple[int, str, str]]:
+    """Split the context block into (index, citation label, chunk text)."""
+    entries: list[tuple[int, str, str]] = []
+    current: tuple[int, str] | None = None
+    body: list[str] = []
+    for line in block.splitlines()[1:]:
+        match = _CITATION_LINE_RE.match(line.strip())
+        if match:
+            if current is not None:
+                entries.append((current[0], current[1], "\n".join(body).strip()))
+            current = (int(match.group(1)), match.group(2).strip())
+            body = []
+        elif current is not None:
+            body.append(line)
+    if current is not None:
+        entries.append((current[0], current[1], "\n".join(body).strip()))
+    return entries
+
+
+def _candidate_sentences(text: str) -> list[str]:
+    """Readable statements: no headings, no blockquote disclaimers, no table rules."""
+    lines = [line.strip() for line in text.splitlines()]
+    separator = re.compile(r"[|:\-\s]+")
+    candidates: list[str] = []
+    for position, line in enumerate(lines):
+        if not line or line.startswith("#") or line.startswith(">"):
+            continue
+        if separator.fullmatch(line):  # markdown table separator row
+            continue
+        following_is_separator = position + 1 < len(lines) and bool(
+            separator.fullmatch(lines[position + 1])
+        )
+        if following_is_separator:  # table header row, the data rows carry the facts
+            continue
+        line = line.replace("**", "")
+        if line.startswith("|") and line.endswith("|"):
+            line = " / ".join(cell.strip() for cell in line.strip("|").split("|") if cell.strip())
+        for part in _SENTENCE_SPLIT_RE.split(line):
+            part = part.strip().lstrip("-* ").strip().rstrip("，、")
+            if len(part) >= 10:
+                candidates.append(part)
+    return candidates
+
+
+def _best_sentences(text: str, question: str, limit: int = 2) -> str:
+    """Pick the statements that share the most 2-grams with the question."""
+    grams = {question[i : i + 2] for i in range(len(question) - 1) if question[i : i + 2].strip()}
+    candidates = _candidate_sentences(text)
+    if not candidates:
+        return text.strip()[:_MAX_SENTENCE_CHARS]
+    ranked = sorted(
+        enumerate(candidates),
+        key=lambda item: (-sum(gram in item[1] for gram in grams), item[0]),
+    )
+    chosen = [candidates[index][:_MAX_SENTENCE_CHARS] for index, _ in ranked[:limit]]
+    return "；".join(chosen)
+
+
+def _grounded_answer(block: str, question: str) -> str:
+    """Extractive answer assembled from the retrieved chunks, with citations."""
+    if NO_CONTEXT_BODY in block:
+        return (
+            "当前知识库没有足够信息回答该问题。\n"
+            "请先通过 POST /api/knowledge/ingest 导入相关公开资料，或换一种问法。"
+        )
+    entries = _parse_context(block)
+    if not entries:
+        return "当前知识库没有足够信息回答该问题。"
+    lines = [
+        f"根据知识库检索到的 {len(entries)} 条资料（MockProvider 抽取式回答，"
+        "接入真实模型后由 LLM 生成自然语言总结）："
+    ]
+    for index, _label, text in entries[:_MAX_CITED_SOURCES]:
+        lines.append(f"- {_best_sentences(text, question)} [{index}]")
+    lines.append("")
+    lines.append("引用来源：")
+    for index, label, _text in entries:
+        lines.append(f"[{index}] {label}")
+    return "\n".join(lines)
 
 
 class MockProvider(BaseProvider):
     """Deterministic mock provider for testing and offline development.
 
-    Returns canned responses based on the last user message content.
+    Two behaviours:
+
+    * plain chat -> canned responses keyed off the last user message;
+    * RAG chat (prompt carries a 【知识库检索结果】 block) -> extractive answer
+      built only from the retrieved chunks, with [n] citations.
     """
 
     @property
@@ -34,8 +135,11 @@ class MockProvider(BaseProvider):
                 user_msg = msg.get("content", "")
                 break
 
+        context_block = _find_rag_context(messages)
+        if context_block is not None:
+            content = _grounded_answer(context_block, user_msg)
         # Deterministic canned responses for demo scenarios
-        if "恒光" in user_msg and "业务" in user_msg:
+        elif "恒光" in user_msg and "业务" in user_msg:
             content = (
                 "根据公开资料，湖南恒光科技股份有限公司主要从事无机精细化学品的研发、生产和销售，"
                 "核心产品包括氯碱系列产品（如盐酸、液碱、次氯酸钠等）以及相关化工新材料。"
