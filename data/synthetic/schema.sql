@@ -15,14 +15,21 @@ CREATE TABLE audit_logs (
     user_id INTEGER NOT NULL,
     request_id TEXT NOT NULL,
     action TEXT NOT NULL,
+    endpoint TEXT,
     tool_name TEXT,
     model_name TEXT,
+    mode TEXT,
     input_summary TEXT,
     status TEXT NOT NULL,
     latency_ms INTEGER,
     created_at TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX idx_audit_logs_tool_name ON audit_logs(tool_name);
+CREATE INDEX idx_purchase_orders_order_date ON purchase_orders(order_date);
+CREATE INDEX idx_purchase_orders_material_id ON purchase_orders(material_id);
+CREATE INDEX idx_safety_incidents_created_at ON safety_incidents(created_at);
 
 CREATE TABLE suppliers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

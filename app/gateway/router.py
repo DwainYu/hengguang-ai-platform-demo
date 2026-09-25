@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.config import settings
+from app.config import get_settings
 from app.gateway.base import ModelProvider, ModelResponse
 from app.gateway.mock import MockProvider
 from app.gateway.openai_compatible import OpenAICompatibleProvider
@@ -23,6 +23,7 @@ class ModelGateway:
 
     def _init_providers(self) -> None:
         """Initialize providers based on configuration."""
+        settings = get_settings()
         # Always register mock provider (fallback)
         self._providers["mock"] = MockProvider()
 
@@ -36,7 +37,7 @@ class ModelGateway:
 
     def get_provider(self, name: str | None = None) -> ModelProvider:
         """Get a provider by name, or the default one."""
-        provider_name = name or settings.llm_provider
+        provider_name = name or get_settings().llm_provider
         provider = self._providers.get(provider_name)
         if provider is None:
             # Fallback to mock if requested provider not available
@@ -56,6 +57,7 @@ class ModelGateway:
         tools: list[dict] | None = None,
     ) -> ModelResponse:
         """Chat with the configured provider, with automatic fallback."""
+        settings = get_settings()
         prov = self.get_provider(provider)
         try:
             return await prov.chat(
@@ -80,22 +82,43 @@ class ModelGateway:
             raise RuntimeError(f"Model provider error: {e}") from e
 
     def list_models(self) -> list[dict]:
-        """List available models across all providers."""
-        models = []
+        """Chat + embedding models that are actually usable, without any credential.
+
+        ``available`` replaces the Day-1 ``enabled`` flag: it now means "this
+        provider is registered and its model name is known", which is what the
+        demo UI needs to build a model picker (§十四 GET /api/models).
+        """
+
+        settings = get_settings()
+        models: list[dict] = []
         for name, prov in self._providers.items():
             provider_name = getattr(prov, "provider_name", name)
-            if hasattr(prov, "_default_model"):
-                model_name = getattr(prov, "_default_model", "unknown")
-            else:
-                model_name = "mock-model"
+            model_name = getattr(prov, "_default_model", "") or _fallback_model(provider_name)
             models.append(
                 {
                     "provider": provider_name,
-                    "model": model_name,
-                    "enabled": True,
+                    "model": model_name or "unknown",
+                    "available": True,
+                    "default": provider_name == settings.llm_provider,
+                    "kind": "chat",
                 }
             )
+        models.append(
+            {
+                "provider": settings.embedding_provider,
+                "model": settings.embedding_model or "mock-embedding",
+                "available": True,
+                "default": False,
+                "kind": "embedding",
+            }
+        )
         return models
+
+
+def _fallback_model(provider_name: str) -> str:
+    """Model name to report when a provider does not expose a default model."""
+
+    return "mock-model" if provider_name == "mock" else "unknown"
 
 
 # Global gateway instance

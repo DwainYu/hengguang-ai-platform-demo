@@ -21,13 +21,21 @@ from app.agent.models import AgentRunResult, AgentState, TraceStep
 from app.agent.prompts import build_agent_messages
 from app.agent.registry import ToolRegistry
 from app.agent.tools.base import ToolResult
-from app.config import Settings, settings
+from app.config import Settings, get_settings
 from app.gateway.base import ModelResponse, ToolCall
 from app.gateway.router import ModelGateway
+from app.observability.audit import Actor, AuditLog
 
 STATUS_COMPLETED = "completed"
 STATUS_MAX_STEPS = "max_steps"
 STATUS_MAX_TOOL_CALLS = "max_tool_calls"
+
+
+def _remember_model(actor: Actor | None, model: str) -> None:
+    """Let audit rows for tool calls know which model asked for them."""
+
+    if actor is not None and model:
+        actor.extra["model"] = model
 
 
 def _assistant_message(response: ModelResponse) -> dict[str, Any]:
@@ -55,12 +63,12 @@ def _tool_message(call: ToolCall, result: ToolResult) -> dict[str, Any]:
 
 
 def _result_detail(result: ToolResult) -> str:
-    """Human-readable one-liner for the trace, e.g. `3 chunks`."""
+    """Human-readable one-liner for the trace, e.g. `3 chunks` / `4 rows`."""
     if not result.success:
         return result.error or "failed"
     count = result.metadata.get("result_count")
     if isinstance(count, int):
-        return f"{count} chunks"
+        return f"{count} {'rows' if result.metadata.get('data_source') else 'chunks'}"
     return "ok"
 
 
@@ -80,11 +88,13 @@ class AgentRuntime:
         registry: ToolRegistry,
         *,
         config: Settings | None = None,
+        audit: AuditLog | None = None,
     ) -> None:
         self._gateway = gateway
         self._registry = registry
-        self._executor = ToolExecutor(registry)
-        cfg = config or settings
+        self._audit = audit
+        self._executor = ToolExecutor(registry, audit=audit)
+        cfg = config or get_settings()
         self._max_steps = cfg.agent_max_steps
         self._max_tool_calls = cfg.agent_max_tool_calls
 
@@ -92,14 +102,32 @@ class AgentRuntime:
     def registry(self) -> ToolRegistry:
         return self._registry
 
+    @property
+    def max_steps(self) -> int:
+        """Default LLM-round budget for one run (request overrides are per call)."""
+
+        return self._max_steps
+
+    @property
+    def max_tool_calls(self) -> int:
+        """Default tool-call budget for one run."""
+
+        return self._max_tool_calls
+
     async def run(
         self,
         message: str,
         *,
         max_steps: int | None = None,
         max_tool_calls: int | None = None,
+        actor: Actor | None = None,
     ) -> AgentRunResult:
-        """Run the agent loop for one user message."""
+        """Run the agent loop for one user message.
+
+        ``actor`` carries the authenticated identity + request id of the HTTP call
+        so the executor can enforce tool permissions and write one compact audit
+        row per tool call. Without an actor (unit tests, scripts) RBAC is inert.
+        """
         step_budget = max_steps or self._max_steps
         tool_budget = max_tool_calls or self._max_tool_calls
 
@@ -118,6 +146,7 @@ class AgentRuntime:
             state.step += 1
             response = await self._gateway.chat(state.messages, tools=tools)
             state.model, state.provider = response.model, response.provider
+            _remember_model(actor, response.model)
             state.messages.append(_assistant_message(response))
             state.trace.append(
                 TraceStep(
@@ -138,7 +167,7 @@ class AgentRuntime:
                     # While-loop top check turns this into a max_tool_calls stop.
                     break
                 started = time.perf_counter()
-                result = await self._executor.execute(call)
+                result = await self._executor.execute(call, actor=actor)
                 state.tool_calls.append(call)
                 state.tool_results.append(result)
                 state.messages.append(_tool_message(call, result))
@@ -172,6 +201,9 @@ class AgentRuntime:
                 "arguments": call.arguments,
                 "success": result.success,
                 "error": result.error,
+                "error_code": result.error_code,
+                "operation": result.metadata.get("operation"),
+                "result_count": result.metadata.get("result_count"),
             }
             for call, result in zip(state.tool_calls, state.tool_results, strict=True)
         ]
@@ -184,4 +216,5 @@ class AgentRuntime:
             tool_calls=tool_call_payloads,
             sources=state.sources,
             trace=[asdict(entry) for entry in state.trace],
+            request_id=actor.request_id if actor else "",
         )

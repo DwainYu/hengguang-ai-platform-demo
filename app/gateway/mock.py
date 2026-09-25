@@ -51,6 +51,15 @@ _ENTERPRISE_TERMS = (
     "上市",
 )
 
+# Day-4 business tools: fixed operation names the heuristic may choose.
+ERP_TOOL = "erp_purchase_analysis"
+SAFETY_TOOL = "safety_incident_analysis"
+
+# Enterprise *data* questions go to the business tools before the knowledge base,
+# because 采购/价格/安全 also appear in _ENTERPRISE_TERMS.
+_ERP_TERMS = ("采购", "价格", "供应商", "订单", "库存", "物料", "原材料", "采购额", "花费")
+_SAFETY_TERMS = ("安全", "事故", "隐患", "车间", "区域", "风险", "事件", "违章")
+
 # Keyword -> document_id hints for scripted/heuristic document_lookup calls.
 # 半年报 must be checked before 年报 (it contains that substring).
 _DOCUMENT_HINTS: tuple[tuple[str, str], ...] = (
@@ -233,6 +242,10 @@ class MockProvider(BaseProvider):
 
         if self._wants_document_details(user_msg) and "document_lookup" in tool_names:
             return "", [self._make_tool_call("document_lookup", user_msg)]
+        if self._wants_erp(user_msg) and ERP_TOOL in tool_names:
+            return "", [self._make_tool_call(ERP_TOOL, user_msg)]
+        if self._wants_safety(user_msg) and SAFETY_TOOL in tool_names:
+            return "", [self._make_tool_call(SAFETY_TOOL, user_msg)]
         if self._wants_knowledge(user_msg) and "knowledge_search" in tool_names:
             return "", [self._make_tool_call("knowledge_search", user_msg)]
         if self._wants_document_lookup(user_msg) and "document_lookup" in tool_names:
@@ -246,6 +259,18 @@ class MockProvider(BaseProvider):
             arguments: dict = {"query": user_msg}
         elif name == "document_lookup":
             arguments = {"document_id": _document_id_for(user_msg)}
+        elif name == ERP_TOOL:
+            arguments = {
+                "operation": _erp_operation_for(user_msg),
+                "days": _window_days(user_msg),
+                "limit": 10,
+            }
+        elif name == SAFETY_TOOL:
+            arguments = {
+                "operation": _safety_operation_for(user_msg),
+                "days": _window_days(user_msg),
+                "limit": 10,
+            }
         else:  # unknown tool on purpose (executor must reject it)
             arguments = {}
         return ToolCall(id=f"call_{name}_{self._call_counter}", name=name, arguments=arguments)
@@ -253,6 +278,18 @@ class MockProvider(BaseProvider):
     @staticmethod
     def _wants_knowledge(user_msg: str) -> bool:
         return any(term in user_msg for term in _ENTERPRISE_TERMS)
+
+    @staticmethod
+    def _wants_erp(user_msg: str) -> bool:
+        """Purchase / supplier / inventory question -> ERP tool."""
+
+        return any(term in user_msg for term in _ERP_TERMS)
+
+    @staticmethod
+    def _wants_safety(user_msg: str) -> bool:
+        """Safety incident / area / risk question -> safety tool."""
+
+        return any(term in user_msg for term in _SAFETY_TERMS)
 
     @staticmethod
     def _wants_document_details(user_msg: str) -> bool:
@@ -327,6 +364,62 @@ def _answer_from_tool_result(content: str, question: str) -> str:
     if not cleaned:
         return "当前知识库没有足够信息回答该问题。"
     return cleaned  # tool content is already user-facing (e.g. document summary)
+
+
+_DAYS_RE = re.compile(r"(\d+)\s*(?:天|日|days?)")
+_DEFAULT_WINDOW_DAYS = 30
+
+_ERP_OPERATIONS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("库存", "仓储", "存货"), "inventory_summary"),
+    (("供应商", "供货"), "supplier_summary"),
+    (("订单",), "recent_purchase_orders"),
+    (("趋势", "变化", "涨", "跌", "价格"), "purchase_price_trend"),
+    (("排名", "前几", "花费", "金额", "采购额", "主要"), "top_materials_by_spend"),
+)
+
+_SAFETY_OPERATIONS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("等级", "严重", "分级"), "incident_by_severity"),
+    (("类别", "原因", "类型", "隐患"), "incident_by_category"),
+    (("趋势", "走势", "每周", "按月"), "incident_trend"),
+    (("高风险", "重大", "危险"), "recent_high_risk"),
+    (("区域", "车间", "哪个", "分布", "最多"), "incident_by_area"),
+)
+
+
+def _window_days(user_msg: str) -> int:
+    """Extract an analysis window in days (最近30天 / 一个月 / default 30)."""
+
+    match = _DAYS_RE.search(user_msg)
+    if match:
+        return max(1, min(365, int(match.group(1))))
+    if "一个月" in user_msg or "本月" in user_msg:
+        return 30
+    if "一周" in user_msg or "本周" in user_msg:
+        return 7
+    if "季度" in user_msg or "三个月" in user_msg:
+        return 90
+    if "半年" in user_msg:
+        return 180
+    if "一年" in user_msg:
+        return 365
+    return _DEFAULT_WINDOW_DAYS
+
+
+def _operation_for(
+    user_msg: str, table: tuple[tuple[tuple[str, ...], str], ...], default: str
+) -> str:
+    for terms, operation in table:
+        if any(term in user_msg for term in terms):
+            return operation
+    return default
+
+
+def _erp_operation_for(user_msg: str) -> str:
+    return _operation_for(user_msg, _ERP_OPERATIONS, "purchase_price_trend")
+
+
+def _safety_operation_for(user_msg: str) -> str:
+    return _operation_for(user_msg, _SAFETY_OPERATIONS, "incident_by_area")
 
 
 def _document_id_for(user_msg: str) -> str:

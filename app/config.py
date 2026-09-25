@@ -1,7 +1,13 @@
-"""Runtime configuration loaded from environment variables."""
+"""Runtime configuration loaded from environment variables.
+
+``get_settings()`` is the late-bound accessor: request-time code (auth, database,
+observability) reads it on every call, so a test can change the environment
+without re-importing the app.
+"""
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -68,6 +74,13 @@ class Settings:
     # Agent runtime safety limits (Day 3)
     agent_max_steps: int = field(default_factory=lambda: _env_int("AGENT_MAX_STEPS", 5))
     agent_max_tool_calls: int = field(default_factory=lambda: _env_int("AGENT_MAX_TOOL_CALLS", 8))
+    # Platform limits (Day 4)
+    synthetic_dir: str = field(
+        default_factory=lambda: _env_str("SYNTHETIC_DIR", "./data/synthetic")
+    )
+    log_level: str = field(default_factory=lambda: _env_str("LOG_LEVEL", "INFO"))
+    log_json: bool = field(default_factory=lambda: _env_bool("LOG_JSON", True))
+    max_tool_rows: int = field(default_factory=lambda: _env_int("MAX_TOOL_ROWS", 50))
 
     @property
     def is_mock_llm(self) -> bool:
@@ -79,3 +92,23 @@ class Settings:
 
 
 settings = Settings()
+
+_current_settings = settings
+
+
+def get_settings() -> Settings:
+    """Current settings object (late-bound; prefer this inside request paths)."""
+
+    return _current_settings
+
+
+def update_settings(**overrides) -> Settings:
+    """Patch individual settings without re-reading the whole environment."""
+
+    global _current_settings
+    _current_settings = replace(_current_settings, **overrides)
+    return _current_settings
+
+
+#: Repository root (used to resolve the relative SQLite / Chroma paths).
+BASE_DIR = Path(__file__).resolve().parent.parent

@@ -51,3 +51,5 @@ class AgentRunResult:
     tool_calls: list[dict] = field(default_factory=list)
     sources: list[dict] = field(default_factory=list)
     trace: list[dict] = field(default_factory=list)
+    #: request_id of the HTTP call that started this run ("" for scripted use).
+    request_id: str = ""

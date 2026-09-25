@@ -9,6 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from app.agent.tools.base import Tool, ToolResult
+from app.auth.permissions import Permission
 from app.services.knowledge_service import KnowledgeService
 
 
@@ -22,6 +23,7 @@ class DocumentLookupTool(Tool):
     """Look up one ingested document by document_id."""
 
     name = "document_lookup"
+    permission = Permission.TOOL_KNOWLEDGE
     description = (
         "Look up one knowledge-base document's metadata (title, source, url, "
         "published_at, sections, chunk count) by its document_id."

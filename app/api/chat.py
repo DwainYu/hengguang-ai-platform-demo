@@ -1,16 +1,35 @@
-"""POST /api/chat — unified entry for chat/agent requests (Day 1+)."""
+"""POST /api/chat — unified chat entry (Day 1) with Day-4 RBAC, audit and metrics.
+
+The chat path still goes straight through the Model Gateway (Day-1 behaviour);
+what Day 4 adds around it is the bearer-token check (``chat:run``), one audit row
+per request with a *non-sensitive* summary (message length, never the text) and a
+structured error when the provider fails.
+"""
 
 from __future__ import annotations
 
 import time
-import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from app.api.errors import ProviderError
+from app.auth.auth import CurrentUser
+from app.auth.dependencies import require
+from app.auth.permissions import Permission
+from app.gateway.base import ModelResponse
 from app.gateway.router import gateway
+from app.observability.audit import Actor, AuditAction, AuditLog, AuditStatus, get_audit_log
+from app.observability.middleware import request_id_of
 
 router = APIRouter(prefix="/api", tags=["chat"])
+
+SYSTEM_PROMPT = "你是恒光 AI 平台助手，基于企业知识库回答问题。"
+
+ChatUserDep = Annotated[CurrentUser, Depends(require(Permission.CHAT_RUN))]
+RequestIdDep = Annotated[str, Depends(request_id_of)]
+AuditLogDep = Annotated[AuditLog, Depends(get_audit_log)]
 
 
 class ChatRequest(BaseModel):
@@ -27,38 +46,59 @@ class ChatResponse(BaseModel):
     model: str
     provider: str
     latency_ms: int
-    # For future Agent/RAG integration
+    user: str = ""
+    role: str = ""
     sources: list[dict] = []
     tool_calls: list[dict] = []
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest) -> ChatResponse:
-    """Main chat endpoint - routes to Model Gateway."""
-    request_id = f"req_{uuid.uuid4().hex[:12]}"
-    start = time.perf_counter()
+async def chat_endpoint(
+    payload: ChatRequest,
+    request_id: RequestIdDep,
+    user: ChatUserDep,
+    audit: AuditLogDep,
+) -> ChatResponse:
+    """Chat through the Model Gateway (agent loop lives on /api/agent/run)."""
 
+    started = time.perf_counter()
     messages = [
-        {"role": "system", "content": "你是恒光 AI 平台助手，基于企业知识库回答问题。"},
-        {"role": "user", "content": request.message},
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": payload.message},
     ]
-
+    status = AuditStatus.SUCCESS
     try:
-        response = await gateway.chat(
+        response: ModelResponse = await gateway.chat(
             messages,
-            model=request.model,
-            temperature=request.temperature if request.temperature is not None else 0.2,
+            model=payload.model,
+            temperature=payload.temperature if payload.temperature is not None else 0.2,
         )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Model error: {e}") from e
+    except Exception as error:  # provider failure stays a controlled 502
+        status = AuditStatus.ERROR
+        raise ProviderError(
+            "模型服务暂时不可用，请稍后重试。",
+            details={"error_type": type(error).__name__},
+        ) from error
 
-    latency_ms = int((time.perf_counter() - start) * 1000)
-
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    audit.record_api(
+        Actor.from_user(user, request_id),
+        action=AuditAction.CHAT_COMPLETE,
+        status=status,
+        endpoint="POST /api/chat",
+        request_id=request_id,
+        model_name=response.model,
+        mode=payload.mode,
+        input_summary={"chars": len(payload.message)},
+        latency_ms=latency_ms,
+    )
     return ChatResponse(
         request_id=request_id,
         answer=response.content,
-        mode=request.mode,
+        mode=payload.mode,
         model=response.model,
         provider=response.provider,
         latency_ms=latency_ms,
+        user=user.username,
+        role=user.role,
     )

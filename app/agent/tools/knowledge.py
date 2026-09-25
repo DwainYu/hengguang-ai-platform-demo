@@ -13,6 +13,7 @@ import time
 from pydantic import BaseModel, Field
 
 from app.agent.tools.base import Tool, ToolResult
+from app.auth.permissions import Permission
 from app.rag.prompt import format_context
 from app.services.knowledge_service import KnowledgeService
 
@@ -28,6 +29,7 @@ class KnowledgeSearchTool(Tool):
     """Search the enterprise knowledge base (public documents only)."""
 
     name = "knowledge_search"
+    permission = Permission.TOOL_KNOWLEDGE
     description = (
         "Search the Hengguang enterprise knowledge base (public documents: company "
         "profile, annual/half-year reports, news). Use this for any question about "

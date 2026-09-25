@@ -1,16 +1,1 @@
-"""API routers."""
-
-from fastapi import APIRouter
-
-from app.api.agents import router as agents_router
-from app.api.chat import router as chat_router
-from app.api.health import router as health_router
-from app.api.knowledge import router as knowledge_router
-from app.api.models import router as models_router
-
-api_router = APIRouter()
-api_router.include_router(health_router)
-api_router.include_router(chat_router)
-api_router.include_router(knowledge_router)
-api_router.include_router(agents_router)
-api_router.include_router(models_router)
+"""API routers (see :mod:`app.api.router` for the assembly)."""
