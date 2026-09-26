@@ -1,0 +1,16 @@
+# Keep the API build context small and free of local runtime state.
+.git
+.venv
+.pytest_cache
+.ruff_cache
+.codegraph
+.pi
+web
+data/runtime/*
+!data/runtime/.gitkeep
+tests
+**/__pycache__
+**/*.py[cod]
+*.md
+.env
+uv.lock.keep

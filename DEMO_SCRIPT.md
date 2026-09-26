@@ -1,89 +1,72 @@
-# Demo Script（5–8 分钟）
+# Demo Script（5–8 分钟，Web Console 驱动）
 
-> 面试演示脚本，见 SPEC 第 15 节。本文件随实现进度更新。
+> 面试演示脚本。Day 5 起整个演示以 **Web Console** 为主线：
+> `docker compose up --build` 后打开 `http://localhost:3000`，右上角可随时切换角色。
+> 全程不写一行代码、不翻后端文件；每个步骤讲的都是「平台层做了什么事」。
+> 对应截图见 `screenshots/` 目录。
 
 ## Step 1 — 30 秒：定位项目
 
-> 这是我针对贵公司的 AI 平台岗位做的一个技术原型。因为真实企业内部数据不能使用，
-> 所以知识库使用公开资料，ERP、安全等数据使用的是合成数据。
-> 我的重点不是做一个聊天机器人，而是验证模型、知识、业务系统和 Agent 能否形成一个统一 AI Platform。
+> 这是我针对贵公司的 AI 平台岗位做的技术原型。真实企业内部数据不能用，
+> 所以知识库用公开资料，ERP、安全数据全部是合成数据。
+> 重点不是做聊天机器人，而是验证**模型、知识、业务系统、Agent 能否收敛进同一个 AI 平台层**，
+> 并把权限、审计、指标、失败处理做对。
 
-## Step 2 — 60 秒：Dashboard（平台层）
+（打开 `http://localhost:3000`，首页即 Dashboard。）
 
-```bash
-export ADMIN="Authorization: Bearer demo-admin-token"
-export OPERATOR="Authorization: Bearer demo-operator-token"
-curl -s http://localhost:8000/metrics            # request_count / success / latency / tool 计数
-curl -s -H "$ADMIN" http://localhost:8000/api/models   # provider 可用性 + 4 个工具 + 该角色允许的调用
-```
+## Step 2 — 60 秒：Dashboard（平台层状态）
 
-> 平台层先统一模型接入、日志和基础监控：`/metrics` 是进程内指标快照，
-> `/api/models` 同时返回工具白名单与当前角色被允许的调用，前端无需了解后端实现。
+> 这一屏回答「平台现在健不健康」：API 状态、模型 Provider、知识库状态、
+> 请求数 / Agent 运行 / 工具调用 / 错误数，以及按端点的平均延迟。
+> 数据全部来自 `GET /health` 与 `GET /metrics`，页面 15 秒自动刷新。
 
-## Step 3 — 90 秒：RAG
+> 强调：**可观测性是平台的一部分**，不是事后补的脚本。
 
-先 ingest（首次启动执行一次）：
+## Step 3 — 90 秒：Agent Playground + RAG
 
-```bash
-curl -X POST http://localhost:8000/api/knowledge/ingest -H 'Content-Type: application/json' -d '{}'
-```
+1. 切到 **Manager**，输入「恒光主要有哪些业务？」
+2. 展示回答正文带 `[n]` 引用，右侧展示：
+   - **Trace 时间线**：LLM → 请求调用工具 → 工具结果（5 chunks）→ 最终回答
+   - **工具调用**：`knowledge_search` 参数 / 成功 / 结果数 / 延迟
+   - **Sources**：每条引用有标题、章节、来源、URL
+3. 说明：回答只基于检索到的公开资料，无依据时会明确说「知识库没有足够信息」，不编造。
 
-输入：`恒光主要有哪些业务？`（`POST /api/knowledge/search`）
+> 这一屏回答「模型能不能凭记忆回答企业事实」——不能，所以走 RAG + citation。
 
-展示回答、`citations`（来源 title + section）、每个 chunk 的 document_id / score / content。
+## Step 4 — 60 秒：业务工具（ERP + Safety）
 
-> 这里不是让模型凭记忆回答，而是先从企业公开资料（公司公开简介、2025 年报、2026 半年报）中
-> 召回 Top-K chunks，再让模型基于检索内容生成带 [n] 引用的回答；
-> 问知识库里没有的问题时，系统明确说明「当前知识库没有足够信息」。
+1. 仍为 Manager：「最近30天主要原材料采购价格有什么变化？」
+   → `erp_purchase_analysis`（operation 白名单 + 参数化 SQL 查合成 SQLite）→ 表格化结果 + 回答。
+2. 切到 **Operator**：「最近一个月哪个区域安全问题最多？」
+   → `safety_incident_analysis` 成功（operator 可用安全工具）。
 
-## Step 4 — 90 秒：ERP Agent（合成数据）
+> 关键设计：**LLM 只能选固定 operation 传参数，写不了 SQL、传不了表名列名**。
 
-```bash
-curl -s -X POST http://localhost:8000/api/agent/run -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{"message": "最近30天主要原材料采购价格如何变化？"}'
-```
+## Step 5 — 90 秒：RBAC 权限边界（本次演示的高光）
 
-展示 Agent → `erp_purchase_analysis`（operation=`purchase_price_trend`）→ 固定参数化 SQL
-→ 结果表格 + 变化率 → LLM summary；再问一句供应商集中度
-（`最近30天哪个供应商供货最多？` → `supplier_summary`）。
+1. 仍为 **Operator**，问「最近30天主要原材料采购价格有什么变化？」
+2. Agent 回答正常收尾（HTTP 200、不崩），但工具调用处显示 **`PERMISSION_DENIED`**：
+   权限在 `ToolExecutor` 边界被拒，工具根本没执行、没触达数据。
+3. 切回 **Manager** 问同一句 → 成功。
+4. 说明：前端切角色只是换请求头，**后端才是安全边界**；operator 问 ERP 是「受控拒绝」，
+   不是 500、不是把数据漏出去。
 
-> 模型不直接执行任意 SQL，只能选 7 个白名单 operation；数据是 SQLite 里
-> 由 `data/synthetic/seed.json` 确定性生成的合成 ERP（约 330 张采购订单 / 120 天，重启不丢）。
+## Step 6 — 60 秒：Audit（一个 request_id 追到底）
 
-## Step 5 — 90 秒：Safety Agent（全角色可用）
+1. 打开 **Audit** 页（operator 会被 403 —— 顺带展示「审计本身也是受权限保护的」）
+2. 表格按 request_id 过滤，点开一行看该请求的 `agent.run` + `tool.call` 完整链路，
+   包括刚才那次 `PERMISSION_DENIED` 的记录。
+3. 强调：**HTTP / Agent / Tool 三类事件共享同一个 request_id**，出事一条链查到底。
 
-```bash
-curl -s -X POST http://localhost:8000/api/agent/run -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"message": "最近一个月哪个区域安全问题最多？"}'      # safety_incident_analysis / incident_by_area
-```
+## Step 7 — 60 秒：Knowledge + 指标
 
-再问 `A车间最近安全问题为什么增加？相关安全制度有哪些？`，展示
-Safety Tool + Knowledge Tool（RAG 制度依据）+ LLM synthesis。
+1. **Knowledge** 页：文档/chunk 统计、直接检索（结果 + citation）。ingest 仅 admin 可点。
+2. 回到 **Dashboard**：刚才所有操作已反映在请求数 / 工具调用 / 延迟上。
 
-> 安全数据同样是合成数据；A 车间事件占比最高（演示数据刻意做出的信号）。
+## Step 8 — 30 秒：收尾 + 可选真实 LLM
 
-## Step 6 — 90 秒：平台工程（RBAC + 审计 + 错误处理）
-
-```bash
-# 1) 无 token / 坏 token → 401，统一错误信封
-curl -s -i http://localhost:8000/api/models | head -3
-# 2) operator 问 ERP → 权限在 Tool 边界拒绝，Agent 不崩，回答说明原因
-curl -s -X POST http://localhost:8000/api/agent/run -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"message": "最近30天哪个供应商供货最多？"}' | python3 -m json.tool | head -20
-# 3) operator 读审计 → 403；manager/admin → 200，可分页可过滤
-curl -s -H "$OPERATOR" http://localhost:8000/api/audit | python3 -m json.tool
-curl -s -H "$ADMIN" 'http://localhost:8000/api/audit?status=denied&page_size=5' | python3 -m json.tool
-# 4) 同一个 request_id 追到底（HTTP → Agent → Tool → Audit）
-curl -s -H "$ADMIN" http://localhost:8000/api/audit/<request_id> | python3 -m json.tool
-# 5) 指标 + 结构化日志
-curl -s http://localhost:8000/metrics | python3 -m json.tool | head -20
-```
-
-> RBAC 不只在路由上：工具权限在 `ToolExecutor` 里再检查一次，所以越权调用一定留下
-> `denied` 审计行，同时 Agent 仍能正常收尾。审计只存参数摘要与统计，不存 API Key、
-> token 和文档全文。
-
-展示 Docker Compose 部署（`docker compose up`）。
-
-> 如果进入真实环境，我会把 ERP/OA/DCS 等真实接口通过 Tool/Connector 接入，
-> 但高风险生产控制仍然留在原有工业控制系统和人工审批链路中，AI 主要承担知识检索、数据分析和辅助决策。
+- 总结能力栈：Model Gateway / RAG / Agent / ERP·Safety Tool / RBAC / Audit / Metrics / Docker。
+- 可选：展示 `LLM_PROVIDER=openai-compatible` 切到真实 provider（ModelScope DeepSeek）后，
+  同一问句由真实模型生成回答，**引用与审计链路完全不变**。
+- 收尾话术：平台层已收敛模型、知识、业务、权限、审计；下一步是接真实身份（JWT/SSO）、
+  真实业务系统与灰度放量。

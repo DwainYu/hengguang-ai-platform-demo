@@ -1,422 +1,238 @@
 # Hengguang AI Platform Demo
 
-面向「湖南恒光科技股份有限公司 AI 平台工程师」岗位的 3–5 天求职技术 Demo：
-一个可运行、可演示、可 Docker 部署的最小企业 AI 平台原型，覆盖 Model Gateway、RAG、Agent、
-RBAC、审计与监控。
+> 面向「湖南恒光科技股份有限公司 · AI 平台工程师」岗位的求职技术 Demo：
+> 一个 **可运行、可演示、可 Docker 部署** 的最小企业 AI 平台原型。
+> 5 天迭代：Model Gateway → RAG → Agent → 企业业务工具 + RBAC + 审计 + 指标 → Web Console。
 
-**声明**：本项目仅用于技术演示和求职交流。知识库只用公开资料，ERP / 安全 / 设备数据全部为
-合成数据（synthetic data），不接入恒光内部系统，不使用任何内部数据、账号或密钥。
+**Model Gateway · RAG · Agent · ERP Tool · Safety Tool · RBAC · Audit · Metrics · Docker Compose · Web Console**
 
-## 这是什么 / 为什么做
+它不是一个聊天机器人，而是验证一件事：**模型、知识、业务系统、Agent 能否被收敛进同一个 AI 平台层**，
+并且在这一层里把权限、审计、可观测性、失败处理都做对。
 
-- 模拟化工制造企业在已有 OA/ERP/DCS 基础上引入统一 AI 能力层。
-- 重点不是聊天机器人，而是验证「模型 + 知识 + 业务系统 + Agent」能否形成一个统一 AI 平台。
+> **声明 / Disclaimer**
+> This project is an interview-oriented prototype. 它只使用：公开企业资料、合成（synthetic）企业数据、公开演示凭据。
+> 它**不**连接恒光内部系统、**不**使用任何内部数据、**不**访问真实 ERP / OA / DCS、**不**控制任何工业设备。
+> **AI 在本项目里只用于分析与辅助决策（analysis & decision support），不做工业控制（not direct industrial control）。**
+
+| | |
+|---|---|
+| 后端 | FastAPI + uv + Pydantic v2 + SQLAlchemy 2 + Chroma（默认全 mock provider，零 API Key、零外网即可跑通） |
+| 前端 | React 18 + Vite 6 + TypeScript（无 UI 框架、无图表库，控制台风格；5 个页面全走真实 API） |
+| 测试 | `410 passed`（Day 1–3 的 139 个原始测试全部保留，未删弱） |
+| 代码检查 | `ruff check` PASS · `ruff format --check` PASS · `tsc -b && vite build` PASS |
+| 部署 | `docker compose up --build` → API `:8000` + Web Console `:3000`（nginx 反代，重启数据持久） |
+
+## Screenshots
+
+| Dashboard（平台状态 / 指标 / 端点延迟） | Agent Playground（RAG 回答 + trace + 工具 + 引用） |
+|---|---|
+| ![](screenshots/dashboard.png) | ![](screenshots/agent-rag.png) |
+
+| ERP Tool（manager 成功） | 权限边界（operator → PERMISSION_DENIED，受控不崩） |
+|---|---|
+| ![](screenshots/agent-erp.png) | ![](screenshots/permission-denied.png) |
+
+| Audit 链路（一个 request_id 追到底） | Knowledge（带 citation 的 RAG 检索） |
+|---|---|
+| ![](screenshots/audit-trace.png) | ![](screenshots/knowledge.png) |
+
+## 为什么做这个项目
+
+化工制造企业的现实约束是：模型能力可以用，但**企业内部数据、权限、审计、失败处理**才是能不能上线的门槛。
+所以这个 Demo 把重点放在平台层，而不是 prompt 层：
+
+| 企业真实问题 | 本项目的答案 | 位置 |
+|---|---|---|
+| 模型供应商会换、要能统一切换与降级 | Model Gateway 抽象，业务代码不 import provider SDK；mock / OpenAI-compatible 可切换 | `app/gateway/` |
+| 模型不能凭记忆回答企业事实 | RAG：公开资料 ingest → heading 感知 chunk → Chroma → top-k + `[n]` 引用；无依据时明确说「没有足够信息」 | `app/rag/` |
+| 让模型查业务系统，但不能让它写 SQL | 白名单 Tool + 固定 operation + 参数化查询；LLM 无法传表名 / 列名 / SQL | `app/agent/tools/`, `app/db/queries.py` |
+| 谁能用哪个工具 | RBAC：路由权限 + **工具级权限**（在 `ToolExecutor` 内二次执行），越权 → 受控 `PERMISSION_DENIED`，HTTP 仍是 200、Agent 不崩 | `app/security/permissions.py` |
+| 出事要能复盘 | 每次请求生成 `request_id`，同一 ID 贯穿 HTTP / Agent / Tool / 审计；`GET /api/audit/{request_id}` 一条链 | `app/observability/` |
+| 平台自身要健康 | 指标计数（请求 / 工具 / Agent / 拒绝 / 延迟）+ JSON 结构化日志 + 统一错误信封 | `GET /metrics` |
+
+## 当前状态（Day 1 → Day 5 全部完成）
+
+- [x] **Day 1 模型网关**：Gateway 抽象 + MockProvider + `/api/chat`，无需 API Key
+- [x] **Day 2 RAG 知识库**：`data/documents/` → chunker（heading 感知）→ embeddings → Chroma → top-k + citation，带引用的回答；无依据时明确回答「没有足够信息」
+- [x] **Day 3 Agent 工作流**：`/api/agent/run` 跑 `knowledge_search` → RAG → 最终回答 + sources；`document_lookup` 查文档元数据；LLM 决定调不调工具；trace 可视化全部步骤；`max_steps` / `max_tool_calls` 安全限制；工具失败不 500
+- [x] **Day 4 平台化 + 业务工具**：合成 ERP 采购/库存分析 + 安全事件分析 Tool；RBAC（路由级 + 工具级，越权在 Tool 边界受控拒绝）；审计轨迹（一个 request_id 追到底）；指标 / 结构化日志；统一错误结构
+- [x] **Day 5 产品化**：Web Console（Dashboard / Agent Playground / Knowledge / Audit / Settings，角色切换 UI，RBAC 边界可见，trace 可视化，真实 API 数据，指标面板）；Docker 最终验证（API + Web，重启数据持久）；真实 LLM provider 冒烟；README / ARCHITECTURE / DEMO_SCRIPT 定稿
+
+> 测试基线：Day 1–3 完成时 `139 passed`；Day 4 后 `380 passed`；Day 5 后 `410 passed`。
+> 所有 Day 1–4 测试未删除、未弱化；Day 5 新增 30 个 Web Console 契约测试。
 
 ## 架构
 
 ```text
-Web UI -> FastAPI
-            |  Auth middleware（request_id / 计时 / 指标，Day 4）
-            |  Bearer Token RBAC（admin / manager / operator，Day 4）
-            |  /api/chat       -> Model Gateway（直连，Day 1）
-            |  /api/agent/run  -> Agent Runtime（Day 3）
-            |                     |  Model Gateway -> LLM（mock / OpenAI-compatible）
-            |                     |  Tool Registry -> knowledge_search -> RAG (Chroma)
-            |                     |                 -> document_lookup
-            |                     |                 -> erp_purchase_analysis  -> SQLite（合成 ERP，Day 4）
-            |                     |                 -> safety_incident_analysis-> SQLite（合成安全，Day 4）
-            |                     v
-            |              Answer + Sources + Trace（tool 级权限在 executor 内执行）
-            v
-     Audit Log / Metrics / Structured Log（Day 4）  ->  /api/audit、/metrics
+Web Console (nginx :3000, React SPA)
+   │ 静态资源 + 反代 /api /health /metrics
+   ▼
+Model Gateway ◀── Knowledge/RAG ◀── Agent Runtime ──▶ ERP Tool / Safety Tool / Knowledge Tool
+      │              │                     │               │
+   provider      SQLite+Chroma          request_id       SQLite (synthetic)
+   (mock / OpenAI)   ▲                  贯穿审计/指标      ▲
+                     │                        │             │
+                     └──── data/documents ────┘── data/synthetic ──┘
 ```
 
-```mermaid
-flowchart LR
-    U[User] --> A[Agent Runtime]
-
-    A --> G[Model Gateway]
-
-    G --> L[LLM]
-
-    L -->|Tool Call| R[Tool Registry]
-
-    R --> K[knowledge_search]
-
-    K --> RS[RAG Retriever]
-
-    RS --> C[Chroma]
-
-    C --> RS
-
-    RS --> K
-
-    K --> A
-
-    A -->|Final Answer + Citation| U
-```
-
-详见 [ARCHITECTURE.md](./ARCHITECTURE.md) 与 [SPEC.md](./SPEC.md)。
-
-## 当前状态
-
-✅ **Day 1 完成**：Model Gateway + MockProvider + `/api/chat` + pytest 全通过
-
-- Model Gateway 抽象层（`app/gateway/`）
-- MockProvider 无需 API Key 即可运行
-- OpenAI-compatible Provider 预留扩展（DeepSeek/Qwen/Ollama）
-- `/health`、`/api/models`、`/api/chat` 三个核心端点
-
-✅ **Day 2 完成**：RAG 知识库（ingest → chunk → embedding → Chroma → 检索 → citation）
-
-- 文档提取（`app/rag/extractor.py`）：Markdown / TXT / PDF（pypdf 按页提取）
-- Markdown 感知 chunker（`app/rag/chunker.py`）：按 heading 切分，800–1200 字、
-  overlap 100–200，超长章节按句子边界滑窗
-- 可替换 EmbeddingProvider（`app/embeddings/`）：默认离线 mock（hash n-gram，无需 API Key），
-  可切 OpenAI-compatible `/embeddings`
-- Chroma 持久化向量库（`app/rag/store.py`），混合检索（向量 + 词面重合，`app/rag/retriever.py`）
-- RAG 回答（`app/rag/pipeline.py`）：召回 → 编号 context → Model Gateway 生成带 `[n]` 引用的回答，
-  找不到依据时明确说明「知识库没有足够信息」
-- `/api/knowledge/ingest`、`/api/knowledge/documents`、`/api/knowledge/search`
-- 知识库只含公开资料（公司公开简介、2025 年报、2026 半年报、产品/产能、公开新闻），
-  每篇文档带 document_id / title / source / url / published_at metadata
-
-✅ **Day 3 完成**：Agent Workflow + Tool Calling + Agent Loop
-
-- Tool 抽象（`app/agent/tools/base.py`）：Tool 协议 + ToolResult，JSON Schema 由
-  pydantic args model 生成（单一事实来源），参数校验失败不会执行工具
-- Tool Registry（`app/agent/registry.py`）：白名单注册，重名/未知工具明确报错
-- Tool Executor（`app/agent/executor.py`）：validate → lookup → execute → ToolResult，
-  工具异常转换为受控 failure，不向 API 暴露 Python 异常
-- 两个业务 Tool：`knowledge_search`（封装 Day 2 RAG 检索，citation 一路保留）、
-  `document_lookup`（按 document_id 查询文档业务信息）
-- Agent Runtime（`app/agent/runtime.py`）：AgentState / Agent Loop / execution trace，
-  `max_steps` + `max_tool_calls` 安全限制，永不无限循环
-- Model 扩展：`ModelResponse.tool_calls` + `ToolCall`；MockProvider 支持 deterministic
-  tool calling（零 API Key 全流程可跑）；OpenAI-compatible provider 支持发送 tools、解析 tool_calls
-- Prompt policy（`app/agent/prompts.py`）：优先知识库、不编造、无依据时明确说明、引用来源
-- `POST /api/agent/run`：独立 Agent API（与 `/api/chat` 分离）
-- 单元/集成测试 139 个全部通过（零 API Key、零外网）
-
-✅ **Day 4 完成**：平台化 —— RBAC、合成业务数据库、业务 Tool、审计、指标、结构化日志、统一错误
-
-- 数据层（`app/db/`）：SQLAlchemy 模型 + SQLite（`data/runtime/app.db`，gitignored）、
-  `data/synthetic/schema.sql`（参考 DDL，与 ORM 列级一致，有测试校验）、
-  `data/synthetic/seed.json`（静态目录 + 生成参数）
-- 确定性播种（`app/db/seed.py`）：`random_seed=20260926`，采购订单/安全事件按「今天」倒推 120 天生成，
-  重复执行结果一致、幂等跳过、`--force` 重建；uvicorn 重启不会清空数据
-- 固定参数化查询（`app/db/queries.py`）：7 个 ERP + 5 个安全聚合查询，LLM 无法传入 SQL / 表名 / 列名
-- RBAC（`app/auth/`）：Bearer Token → 角色 → 权限；3 个固定演示 token（无 JWT / 登录页 / SSO）；
-  权限矩阵与路由映射集中定义；401 缺/坏 token，403 权限不足；**Tool 级权限在 `ToolExecutor` 内二次执行**
-- 业务 Tool（`app/agent/tools/`）：`erp_purchase_analysis`（7 operation）、
-  `safety_incident_analysis`（5 operation）；返回可读文本 + `metadata.payload` 结构化数据；
-  失败（未知 operation / 参数非法 / 数据库不可用）均为受控 `ToolResult`，不抛裸异常
-- Mock Provider 业务路由：自然语言 → 正确工具 + 正确 operation + 正确时间窗口（无需外网）
-- 审计（`app/observability/audit.py`）：`audit_logs` 表记录 API / Agent / Tool 调用
-  （request_id、user、endpoint、tool、params、status、latency_ms）；`GET /api/audit` 分页 + 过滤、
-  `GET /api/audit/{request_id}` 还原一次运行的完整链路；不记录 API Key / token / 文档全文
-- 指标（`app/observability/metrics.py`）：`GET /metrics` 返回 JSON（request_count、success/error、
-  avg/max latency、by endpoint、tool_call_count、permission_denied_count、agent_runs_by_status、uptime）
-- 结构化日志（`app/observability/logging.py`）：JSON 行，字段含
-  timestamp/level/logger/message/request_id/user_id/endpoint/method/status/latency_ms/error_code/event
-- 统一错误（`app/api/errors.py`）：`{detail, request_id, error:{code,message,details}}`；
-  PlatformError / HTTPException / 校验错误 / 未捕获异常四类 handler，不泄露 traceback 与密钥
-- 新增端点：`GET /metrics`、`GET /api/models`（改造）、`GET /api/audit`、`GET /api/audit/{request_id}`、
-  `GET /api/users`；所有响应带 `request_id` 与 `X-Request-ID`
-- 测试：380 个（Day 1–3 的 139 个全部保留且通过），零 API Key、零外网、CI 可重复
-
-权限矩阵（`app/auth/permissions.py`）：
-
-| 能力 | admin | manager | operator |
-|---|:--:|:--:|:--:|
-| `GET /health`、`GET /metrics` | ✅ 公开 | ✅ 公开 | ✅ 公开 |
-| `POST /api/chat` | ✅ | ✅ | ✅ |
-| `GET /api/models` | ✅ | ✅ | ❌ 403 |
-| `POST /api/knowledge/search`、`GET /api/knowledge/documents` | ✅ | ✅ | ✅ |
-| `POST /api/knowledge/ingest` | ✅ | ❌ 403 | ❌ 403 |
-| `POST /api/agent/run` | ✅ | ✅ | ✅ |
-| `knowledge_search` / `document_lookup` | ✅ | ✅ | ✅ |
-| `safety_incident_analysis` | ✅ | ✅ | ✅ |
-| `erp_purchase_analysis` | ✅ | ✅ | ❌ 拒绝（PERMISSION_DENIED） |
-| `GET /api/audit`、`GET /api/audit/{id}` | ✅ | ✅ | ❌ 403 |
-| `GET /api/users` | ✅ | ❌ | ❌ |
-
-按 SPEC 第 14 节的 5 天计划逐步实现：Day 1 Platform Skeleton → Day 5 UI + Packaging。
+完整说明、调用链、失败边界与 Day 5 前后端交互见 [ARCHITECTURE.md](./ARCHITECTURE.md)。
 
 ## Quick Start
 
-```bash
-# Backend (default: mock providers, no API key needed)
-uv sync
-uv run uvicorn app.main:app --reload   # http://localhost:8000
-
-# Day 4 起 /api/* 需要 Bearer token，先导出三个演示身份（固定常量，见 app/auth/auth.py）
-export ADMIN="Authorization: Bearer demo-admin-token"
-export MANAGER="Authorization: Bearer demo-manager-token"
-export OPERATOR="Authorization: Bearer demo-operator-token"
-
-# 合成业务数据库：首次启动自动建表 + 播种到 ./data/runtime/app.db（gitignored）
-# 手工重建：uv run python -m app.db.seed --force
-# 重置知识库：删掉 ./data/runtime/chroma 后重新 ingest
-
-# Tests
-uv run pytest
-
-# Frontend
-cd web && npm install && npm run dev    # http://localhost:5173 (dev)
-
-# Docker
-cp .env.example .env
-docker compose up -d                    # API :8000, Web :3000
-```
-
-首次启动后需要把公开资料导入知识库（写入 `CHROMA_PATH`）：
+后端（需要 `uv`，零 API Key）：
 
 ```bash
-curl -X POST http://localhost:8000/api/knowledge/ingest -H 'Content-Type: application/json' -d '{}'
-# {"documents":6,"chunks":45,"status":"completed"}
+cd hengguang-ai-platform-demo
+uv sync --frozen
+
+# 方式 1：直接跑
+uv run uvicorn app.main:app --port 8000
+
+# 方式 2：Docker
+docker compose up --build          # API :8000，Web Console :3000
 ```
 
-## Day 3 — Agent Workflow
-
-> Day 4 起所有 `/api/*` 请求都需要 `Authorization: Bearer <token>`；
-> 下面三个 curl 中的 `$ADMIN` 即 `Authorization: Bearer demo-admin-token`。
-
-两个清晰入口：
-
-```text
-/api/chat       Direct Chat
-                     ↓
-                Model Gateway
-
-/api/agent/run  Agent
-                     ↓
-                Model Gateway
-                     ↓
-                Tool Registry
-                     ↓
-                Knowledge Search
-                     ↓
-                RAG
-                     ↓
-                Citation
-```
-
-Agent Loop：
-
-```text
-Step 1  LLM → knowledge_search
-Step 2  knowledge_search → 5 chunks（citation 保留）
-Step 3  LLM → final answer + sources
-```
+Web Console 开发模式（可选，热更新）：
 
 ```bash
-# 企业知识问答（默认 Mock Provider 即可完成演示，无需 API Key）
-curl -X POST http://localhost:8000/api/agent/run \
-  -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{
-    "message": "恒光主要有哪些业务？"
-  }'
-# {"request_id":"req_xxx","answer":"根据知识库检索到的 5 条资料...\n[1] ...","model":"mock-model",
-#  "provider":"mock","steps":2,"status":"completed",
-#  "tool_calls":[{"name":"knowledge_search","arguments":{"query":"恒光主要有哪些业务？"},"success":true,"error":null}],
-#  "sources":[{"index":1,"document_id":"hengguang-public-profile","title":"湖南恒光科技股份有限公司公开简介",
-#              "section":"主营业务","source":"public","citation":"湖南恒光... · 主营业务"}],
-#  "trace":[{"step":1,"type":"llm","tool":"knowledge_search"},{"step":1,"type":"tool_call","tool":"knowledge_search","detail":"5 chunks"},
-#           {"step":2,"type":"llm"},{"step":2,"type":"final"}]}
-
-# 普通对话（不调用 Tool）
-curl -X POST http://localhost:8000/api/agent/run \
-  -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{
-    "message": "你好"
-  }'
-# {"request_id":"req_xxx","answer":"你好！我是恒光 AI 平台的模拟助手...","steps":1,"tool_calls":[],"sources":[]}
-
-# 文档查询
-curl -X POST http://localhost:8000/api/agent/run \
-  -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{"message": "查看恒光2025年年报的详细信息"}'
+cd web
+npm install
+npm run dev                        # http://localhost:5173（代理到 :8000）
 ```
 
-安全限制：`AGENT_MAX_STEPS`（默认 5）限制 LLM 轮数，`AGENT_MAX_TOOL_CALLS`（默认 8）
-限制工具执行次数；达到上限安全停止并在响应 `status` 中标注，模型持续请求同一个 Tool
-也会最终终止。未知工具、malformed 参数不会执行，工具异常转换为受控失败返回给 Agent。
-
-## Day 4 — 业务工具、权限与可观测性
-
-### ERP 采购分析（admin / manager）
+生产构建 / 验证前端：
 
 ```bash
-curl -s -X POST http://localhost:8000/api/agent/run \
-  -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{"message": "最近30天主要原材料采购价格如何变化？"}'
+cd web
+npm run build                      # 先 `tsc -b`（类型检查）再 `vite build`
 ```
 
-```json
-{"request_id":"req_1f0c…","status":"completed","role":"admin","steps":2,
- "tool_calls":[{"name":"erp_purchase_analysis","arguments":{"operation":"purchase_price_trend","days":30},
-   "success":true,"operation":"purchase_price_trend","result_count":10}],
- "answer":"【ERP 采购数据】…\n1. 物料=双氧水, 单位=吨, 订单数=8, 均价=2,044.55, 变化率%=1.91, 采购金额=4,333,072.64\n…"}
-```
-
-operation 白名单：`purchase_price_trend` / `top_materials_by_spend` / `supplier_summary` /
-`recent_purchase_orders` / `inventory_summary` / `material_consumption` / `purchase_amount_stats`。
-
-### 安全事件分析（全部角色）
+### API / Web 冒烟（后端先启动）
 
 ```bash
-curl -s -X POST http://localhost:8000/api/agent/run \
-  -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"message": "最近一个月哪个区域安全问题最多？"}'
-# tool_calls[0].name = safety_incident_analysis, operation = incident_by_area
-# 1. 区域=A 车间（氯碱）, 事件数=15, 高风险数=3, 未闭环数=3, 占比%=48.39 …
-```
-
-### operator 调用 ERP → 权限在 Tool 边界拒绝（HTTP 仍 200，Agent 不崩）
-
-```bash
-curl -s -X POST http://localhost:8000/api/agent/run \
-  -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"message": "最近30天哪个供应商供货最多？"}'
-# "tool_calls":[{"name":"erp_purchase_analysis","success":false,"error_code":"PERMISSION_DENIED",
-#   "error":"权限不足（PERMISSION_DENIED）：角色 'operator' 不允许使用工具 'erp_purchase_analysis'（需要权限 'tool:erp'）"}]
-# 审计：tool.call=denied + agent.run=denied
-```
-
-### 审计轨迹：一次 request_id 追到底
-
-```bash
-curl -s -H "$ADMIN" 'http://localhost:8000/api/audit?page=1&page_size=5'
-# {"items":[{"id":2,"request_id":"req_b28f90ac…","user_id":1,"username":"admin_demo","role":"admin",
-#            "action":"agent.run","endpoint":"POST /api/agent/run","operation":"agent.run","tool":null,
-#            "model":"mock-model","mode":"agent","status":"success","latency_ms":8,
-#            "created_at":"2026-09-26T07:35:28+08:00",
-#            "input_summary":{"chars":19,"steps":2,"tool_calls":1,"denied_calls":0,"run_status":"completed"}}],
-#  "page":1,"page_size":1,"total":2,"request_id":"req_cf6af3d5…",
-#  "viewer":{"username":"admin_demo","role":"admin"}}
-
-curl -s -H "$ADMIN" 'http://localhost:8000/api/audit/<request_id>'   # 一次运行的全部行
-curl -s -H "$ADMIN" 'http://localhost:8000/api/audit?tool=erp_purchase_analysis&status=denied'
-curl -s -H "$OPERATOR" http://localhost:8000/api/audit    # 403 {"error":{"code":"PERMISSION_DENIED",…}}
-```
-
-### 指标与结构化日志
-
-```bash
-curl -s http://localhost:8000/metrics
-# {"request_count":3,"success_count":3,"error_count":0,"avg_latency_ms":7.84,"max_latency_ms":19.1,
-#  "requests_by_status_class":{"2xx":3},
-#  "requests_by_endpoint":{"GET /api/models":{"count":1,"avg_latency_ms":2.24},"POST /api/agent/run":{"count":1,"avg_latency_ms":19.1}},
-#  "error_by_code":{},"tool_call_count":1,"tool_error_count":0,"permission_denied_count":0,
-#  "agent_run_count":1,"agent_runs_by_status":{"completed":1},"audit_write_count":2,
-#  "uptime_seconds":0.73,"app":{"version":"0.1.0","provider":"mock"},"endpoint":"GET /metrics",
-#  "request_id":"req_…"}
-
-# 日志走 stdout（uvicorn），一行一个 JSON：
-uv run uvicorn app.main:app --log-level warning | grep '"event": "http.request"' 
-# {"timestamp":"2026-09-26T07:31:12.906+00:00","level":"info","logger":"app.observability.http",
-#  "message":"request completed","event":"http.request","endpoint":"POST /api/agent/run",
-#  "method":"POST","status":200,"latency_ms":24.31,"error_code":null,"request_id":"req_1f0c…"}
-```
-
-### 错误响应统一结构（401 / 403 / 404 / 409 / 422 / 500）
-
-```bash
-curl -s http://localhost:8000/api/models                     # 无 token
-# {"detail":"缺少或无效的 Bearer token","request_id":"req_…",
-#  "error":{"code":"UNAUTHENTICATED","message":"缺少或无效的 Bearer token",
-#           "details":{"scheme":"Bearer","demo_tokens":"admin: demo-admin-token、…"}}}
-curl -s -H "$ADMIN" -H 'Content-Type: application/json' -d '{}' http://localhost:8000/api/agent/run
-# {"detail":"请求参数校验失败","error":{"code":"VALIDATION_ERROR","details":{"errors":[{"loc":["body","message"],…}]},"request_id":"req_…"}}
-```
-
-## API 示例
-
-```bash
-# 健康检查（公开）
 curl http://localhost:8000/health
-# {"status":"ok","version":"0.1.0","database":{"configured":true,"initialized":true,"tables":[…9],"audit_action":"audit_action"},"request_count":7}
-
-# 模型列表（admin / manager）
-curl -s -H "$ADMIN" http://localhost:8000/api/models
-# {"request_id":"req_…",
-#  "models":[{"provider":"mock","model":"mock-model","available":true,"default":true,"kind":"chat"},
-#            {"provider":"mock","model":"mock-embedding","available":true,"default":false,"kind":"embedding"}],
-#  "agent":{"tools":["knowledge_search","document_lookup","erp_purchase_analysis","safety_incident_analysis"],
-#           "allowed_tools":[按角色过滤],"max_steps":5,"max_tool_calls":8},
-#  "permissions":["audit:read","chat:run",…]}   # 不含任何密钥
-
-# 聊天（直连 Model Gateway，Day 1 行为不变；Day 4 起需要 token）
-curl -X POST http://localhost:8000/api/chat \
-  -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"message": "你好"}'
-# {"request_id":"req_xxx","answer":"你好！我是恒光 AI 平台的模拟助手...","mode":"auto","model":"mock-model","provider":"mock","latency_ms":0}
-
-# Agent 运行（Tool Calling，见上文 Day 3 / Day 4 章节）
-curl -X POST http://localhost:8000/api/agent/run \
-  -H "$ADMIN" -H 'Content-Type: application/json' \
-  -d '{"message": "恒光主要有哪些业务？"}'
-
-# 知识库 ingest（首次启动后执行一次；仅 admin）
-curl -X POST http://localhost:8000/api/knowledge/ingest \
-  -H "$ADMIN" -H 'Content-Type: application/json' -d '{"path": "data/documents"}'
-# {"documents":6,"chunks":45,"status":"completed","skipped":[],"errors":[]}
-
-# 知识库文档列表 + chunk 统计（全部角色）
-curl -s -H "$OPERATOR" http://localhost:8000/api/knowledge/documents
-
-# 知识库检索：Top-K chunks + metadata + citation + 带引用的回答（全部角色）
-curl -X POST http://localhost:8000/api/knowledge/search \
-  -H "$OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"query": "恒光主要有哪些业务？", "top_k": 3}'
-# {"query":"...","count":3,
-#  "results":[{"document_id":"hengguang-public-profile","title":"湖南恒光科技股份有限公司公开简介",
-#              "section":"主营业务","content":"## 主营业务 ...","score":0.24,"citation":"... · 主营业务"}],
-#  "citations":[{"index":1,"document_id":"...","title":"...","section":"主营业务"}],
-#  "answer":"根据知识库检索到的 3 条资料... [1]","model":"mock-model","provider":"mock","latency_ms":3}
+curl -s http://localhost:8000/metrics | head -c 200; echo
+curl -s -H "Authorization: Bearer demo-admin-token" \
+     -X POST http://localhost:8000/api/agent/run \
+     -H 'Content-Type: application/json' -d '{"message":"恒光主要有哪些业务？"}'
+curl -s -H "Authorization: Bearer demo-admin-token" "http://localhost:8000/api/audit?page_size=5"
 ```
 
-## Demo Scenarios
+Web Console 打开 `http://localhost:3000`（Docker）或 `:5173`（dev）。
 
-| 场景 | 输入 | 走通 | 状态 |
+## 演示账号（RBAC）
+
+三个演示角色（token 故意公开，用于面试零门槛演示；生产应换成真实身份提供方）：
+
+| 角色 | Token | 能做什么 | 不能做什么 |
 |---|---|---|---|
-| 企业知识问答 | 恒光主要有哪些业务？ | `/api/agent/run` → knowledge_search → RAG → citation | ✅ Day 3 |
-| 普通对话 | 你好 | `/api/agent/run` → LLM → final answer（不查知识库） | ✅ Day 3 |
-| 无依据问题 | 恒光内部某员工今天几点下班？ | knowledge_search → 无依据 → 明确说明「没有足够信息」 | ✅ Day 3 |
-| Tool Failure | Chroma unavailable | ToolResult.success=false → 受控错误，不 500 | ✅ Day 3 |
-| 文档查询 | 查看恒光2025年年报的详细信息 | document_lookup | ✅ Day 3 |
-| RAG 检索（直连） | 恒光主要有哪些业务？ | `POST /api/knowledge/search` | ✅ Day 2 |
-| ERP 采购价格趋势 | 最近30天主要原材料采购价格如何变化？ | erp_purchase_analysis → 固定参数化 SQL | ✅ Day 4 |
-| 供应商集中度 | 最近30天哪个供应商供货最多？ | erp_purchase_analysis / supplier_summary | ✅ Day 4 |
-| 安全分析 | 最近一个月哪个区域安全问题最多？ | safety_incident_analysis / incident_by_area | ✅ Day 4 |
-| 权限边界 | operator 问 ERP 采购 | ToolExecutor 拒绝 → 审计 denied → Agent 正常收尾 | ✅ Day 4 |
-| 审计追踪 | 一个 request_id 查 HTTP/Agent/Tool 全部行 | `GET /api/audit/{request_id}` | ✅ Day 4 |
-| 平台指标 | 请求数 / 成功率 / 延迟 / 工具失败 | `GET /metrics` | ✅ Day 4 |
+| admin | `demo-admin-token` | 全部：知识库 ingest、ERP/Safety 工具、审计、用户管理 | — |
+| manager | `demo-manager-token` | RAG、ERP 采购分析、安全事件分析、审计、模型列表 | 不能 ingest、不能管用户 |
+| operator | `demo-operator-token` | RAG 知识问答、安全事件分析、直接聊天 | 不能查 ERP（`tool:erp` 拒绝）、不能看审计、不能 ingest |
 
-## 数据边界
+Web Console 右上角可一键切换这三个角色，立刻看到同一条 ERP 问题在 operator 下被工具边界拒绝、
+在 manager 下成功的对比。
 
-- 公开数据：`data/documents/`（公开公司简介、公开年报/新闻）→ RAG 知识库
-- 合成数据：`data/synthetic/`（`schema.sql` + `seed.json`）→ SQLite 业务库
-  （供应商、物料、采购订单、库存、安全事件、设备/维修），全部人工构造、可复现，
-  与恒光股份真实经营数据无关；详见 [data/synthetic/README.md](./data/synthetic/README.md)
-- 运行时产物写在 `data/runtime/`（数据库 + Chroma），已 gitignore，不提交 Git
-- 身份只有三个固定演示 token（无 JWT / 无登录 / 无真实账号）
-- 不接入真实 ERP/OA/DCS，不做真实生产控制；业务查询只允许固定 operation + 参数化 SQL
+## Docker Compose 最终验证
 
-## 演示身份（Demo tokens）
+```bash
+docker compose up --build
+curl http://localhost:8000/health                 # API
+curl http://localhost:3000/                       # Web Console (nginx)
+curl http://localhost:3000/metrics                # 反代后的指标
+```
 
-| 角色 | token | 定位 |
-|---|---|---|
-| admin | `demo-admin-token` | 全权限（含 ingest、审计、用户、ERP） |
-| manager | `demo-manager-token` | 分析与审计（可查 ERP/安全/审计，不可 ingest、不可管用户） |
-| operator | `demo-operator-token` | 一线问答（知识 + 安全分析，无 ERP、无审计、无 ingest） |
+验证清单（已通过）：
 
-这些 token 是**故意公开**的演示常量，用于面试现场零门槛跑通 RBAC；生产环境应替换为真实
-身份提供方（JWT/SSO），但 `Permission` / 角色矩阵 / Tool 边界检查可原样保留。
+- `docker compose config` 解析通过（`.env` 可选，`required: false`）
+- 两个服务 build + start；API 带 `service_healthy` 依赖，web 不再因启动顺序 502
+- 反代 `/api` `/health` `/metrics` 全部 200；静态首页 200
+- `docker compose stop && docker compose up -d` 后：SQLite 审计行数、Chroma 文档/chunk 数、
+  旧 request_id 的审计轨迹**全部还在**（`./data/runtime` 卷持久）
+- 运行中调用 `/api/agent/run`、`/metrics`、`/api/audit`、`/api/knowledge/ingest` 均正常
 
-## 运行环境要求
+## 真实 LLM Provider 配置（可选）
 
-- Python 3.11+（uv 管理）
-- Node.js 18+（前端）
-- Docker / Docker Compose（可选部署）
+默认 `LLM_PROVIDER=mock`（零 Key、零外网）。接真实 provider 只用改环境变量，不改代码：
+
+```bash
+export LLM_PROVIDER=openai-compatible
+export LLM_BASE_URL=https://api-inference.modelscope.cn/v1   # 任意 OpenAI-compatible /v1
+export LLM_API_KEY=<你的 key>
+export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用的模型
+# embedding 可保持 EMBEDDING_PROVIDER=mock，RAG 检索不受影响
+```
+
+已做真实 provider 冒烟（`ModelScope DeepSeek-V4-Flash`，embedding 仍 mock）：
+`POST /api/chat` 直接真实模型回答；`POST /api/agent/run` 走完 RAG 工具链，answer 为真实模型生成、
+`model != mock` 且仍保留 5 条带 citation 的 sources。**key 只留在 shell / `.env`（已 gitignore），仓库无任何密钥。**
+
+## 数据边界（合成数据声明）
+
+- `data/documents/`：公开公司简介、公开年报/新闻摘要 → RAG 知识库（真实来源：公开资料）
+- `data/synthetic/`：`schema.sql` + `seed.json` → 9 张表 SQLite（供应商 / 物料 / 采购订单 / 库存 / 安全事件 / 设备维修…），
+  **全部人工构造、可复现，与恒光股份真实经营数据无关**，详见 `data/synthetic/README.md`
+- `data/runtime/`：运行产物（`app.db` + Chroma），已 gitignore，不提交 Git
+
+## 安全说明（Security Notes）
+
+- **权限在 Tool 边界二次执行**：路由层校验一次，`ToolExecutor` 再校验一次；operator 调 ERP 工具 →
+  `success=false, error_code=PERMISSION_DENIED`，Agent 正常收尾、HTTP 200，不 500、不崩、不泄数据
+- **统一错误信封**：401/403/404/409/422/500 都返回 `{ detail, request_id, error:{ code, message, details } }`，
+  前端直接渲染，**不显示 stack trace**
+- **演示 token 是常量**（`demo-*-token`），仅用于面试演示；生产需换成 JWT/SSO，但 `Permission`/角色矩阵/工具边界可原样保留
+- **无 JWT / 无登录态**：鉴权只认固定 Bearer 常量；`data/runtime` 不入库、不含凭据
+- Web 角色切换只是前端切换 Authorization header，**后端仍按 token 做权威校验**——切换 operator 立刻看到 403
+
+## 已知限制 / 边界（诚实说明）
+
+- 身份是三个固定 token，不是 JWT/SSO/OAuth（Day 4 明确声明）
+- 业务数据是合成 SQLite，不是真 ERP/OA/DCS；AI 不做工业控制
+- 默认 mock provider；真实 LLM 需自备 Key（配置方式见上），embedding 冒烟仍走 mock
+- 知识库 ingest 目前全量重建（不增量）；Chroma 为本地嵌入式，未做多副本/集群
+- Web Console 角色切换是 demo UX，不是真正的多用户登录（后端仍按 token 鉴权）
+- 指标是进程内计数，重启即清零（审计/知识库数据持久在 SQLite/Chroma，不受影响）
+
+## 面试讲解要点（Interview Talking Points）
+
+1. **为什么做平台层而不是 prompt 层**：化工企业真正难的是数据/权限/审计/失败处理，不是把模型接上。
+2. **Model Gateway 抽象**：业务不 import provider SDK，换供应商改配置即可，可降级到 mock。
+3. **RAG 的 heading 感知分块**：保留标题上下文进 chunk，让引用（`[n]` + section）准确、可追溯。
+4. **Agent 的「白名单工具 + 固定 operation + 参数化 SQL」**：让 LLM 查业务系统，但它写不了 SQL。
+5. **RBAC 在 Tool 边界二次执行**：这是企业最关心的「越权调工具怎么办」——受控拒绝、审计留痕、Agent 不崩。
+6. **request_id 贯穿**：一次请求在 HTTP / Agent / Tool / 审计四处用同一 ID，出事能追到底。
+7. **指标 + 结构化日志 + 统一错误信封**：平台可观测、可排障。
+8. **测试策略**：mock provider + 合成数据保证 `410` 个测试离线、可复现、零外部依赖。
+
+## 项目结构
+
+```text
+app/
+  api/        路由：chat / agent / knowledge / models / users / audit / metrics / health
+  gateway/    Model Gateway + Mock/OpenAI-compatible provider
+  rag/        chunker / embeddings / ingest / retriever / citation
+  agent/      AgentRuntime + ToolRegistry + tools (knowledge/document/erp/safety)
+  db/         合成 SQLite 初始化 + 参数化查询（operation 白名单）
+  security/   权限定义 + 角色矩阵 + Bearer 鉴权
+  observability/ request_id / 审计 / 指标 / 结构化日志 / 错误信封
+  main.py     FastAPI app 装配（CORS、中间件、启动初始化）
+data/
+  documents/  公开资料（RAG 语料）      synthetic/ 合成 ERP/安全 schema+seed
+  runtime/    运行产物（app.db + chroma，gitignore）
+web/          React Console（src 下 app/pages/components/services/hooks/types）
+tests/        Day 1–5 全部测试（410）
+```
+
+## 测试 / 质量
+
+```bash
+uv run pytest -q            # 410 passed
+uv run ruff check .         # PASS
+uv run ruff format --check .# PASS
+cd web && npx tsc -b && npm run build   # 前端类型检查 + 产物
+```
+
+Day 5 契约测试在 `tests/integration/test_web_console_contract.py`：钉死 Web Console 依赖的每个 API 字段
+（agent 的 `tool_calls/trace/sources`、knowledge 的 `documents/results/citations/ingest`、audit 的
+`items/total/request_id/viewer`、metrics 的固定字段、operator 403 on `/api/models` 与 `/api/audit`、
+`PERMISSION_DENIED` 不出现 stack trace 等），保证后端字段漂移不会悄悄打断前端。

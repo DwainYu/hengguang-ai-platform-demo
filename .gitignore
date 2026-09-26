@@ -20,3 +20,6 @@ data/runtime/*
 .DS_Store
 .codegraph/
 .pi/
+
+# frontend build
+web/tsconfig.tsbuildinfo

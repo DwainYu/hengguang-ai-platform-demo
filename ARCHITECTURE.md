@@ -80,3 +80,54 @@ Request
 - 知识库只允许公开资料（SPEC 6.1）；`data/documents/` 每篇文档带 YAML front matter
   （document_id / title / source / url / published_at），README.md 与不支持的类型跳过。
 - 不提交任何 secret 到 Git；`.env` 默认全部 mock，无需 key 即可运行测试与 UI。
+
+## Day 5 — Web Console 与前后端交互
+
+```text
+浏览器 / Web Console (nginx :3000, React SPA)
+   │  静态资源 + 反代 /api /health /metrics
+   ▼
+FastAPI (ASGI 中间件：request_id → 鉴权 → 路由 → 业务)
+   │
+   ├── chat / agent / knowledge / models / users / audit / metrics / health
+   ├── AgentRuntime（有限步 loop）
+   │      ├── ToolRegistry → 白名单 Tool
+   │      ├── ToolExecutor（工具级 RBAC 二次校验 + 参数校验 + 异常转受控失败）
+   │      └── Trace（llm / tool_call / final / stopped）
+   ├── RAG（knowledge_search → Chroma → citation）
+   ├── 合成 SQLite（operation 白名单 + 参数化 SQL：ERP / Safety）
+   ├── AuditLog（request_id 贯穿：http.request / agent.run / tool.call）
+   └── Metrics（请求 / 工具 / Agent / 拒绝 / 延迟）
+```
+
+**Web Console 页面与 API 对应**
+
+| 页面 | 数据源 | 边界 |
+|---|---|---|
+| Dashboard | `GET /health` + `GET /metrics` | 公开，无需 token；状态卡 + 指标面板 + 端点延迟 |
+| Agent Playground | `POST /api/agent/run` | 走完整 Agent loop，渲染 trace / 工具调用 / sources / 引用 |
+| Knowledge | `GET /api/knowledge/documents` + `POST /api/knowledge/search` | 检索结果 + citation；ingest 仅 admin（其余角色 UI 禁用，后端仍 403） |
+| Audit | `GET /api/audit` + `GET /api/audit/{request_id}` | 按 request_id 追踪；operator 无 `audit:read` → 403 受控页 |
+| Settings | 角色矩阵 + 演示 token | 前端切角色 = 切换 Bearer token；后端鉴权逻辑不变 |
+
+前端角色切换只改请求头里用的 demo token，**不绕过任何安全边界**；同一问句换 operator 立刻看到
+工具级 `PERMISSION_DENIED`（后端 `ToolExecutor` 拒绝，非前端假象）。
+
+### 一次企业知识问答在 Day 5 之后如何穿过全部层
+
+```text
+Web Console (浏览器)
+  → Agent Playground 输入「恒光主要有哪些业务？」
+  → POST /api/agent/run (Authorization: Bearer demo-admin-token)
+  → request_id 生成（中间件）
+  → AgentRuntime.loop（max_steps=5 / max_tool_calls=8）
+  → LLM(mock) 判定调用 knowledge_search（arguments 由 Pydantic 校验）
+  → ToolExecutor：白名单查工具 → 权限校验（operator 会在此被拒）→ 参数校验 → 执行
+  → RAG search → Chroma top_k=5（heading 感知 chunk + 混合检索）
+  → 引用 [n] + document metadata（title / section / source / url）
+  → LLM 生成最终回答 + sources
+  → Trace：llm / tool_call / final（含 latency_ms、status、error_code）
+  → AuditLog：agent.run + tool.call + http.request（同一 request_id）
+  → Metrics：请求 +1、工具调用 +1、延迟更新
+  → Web Console 渲染：回答、trace 时间线、工具调用、引用、指标
+```
