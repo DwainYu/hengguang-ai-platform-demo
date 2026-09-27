@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -25,6 +26,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.auth.auth import CurrentUser
+from app.config import get_settings
 from app.db.database import Database, get_database
 from app.observability.metrics import Metrics
 from app.observability.metrics import metrics as default_metrics
@@ -269,7 +271,9 @@ class AuditLog:
     ) -> None:
         self._database = database
         self._metrics = metrics if metrics is not None else default_metrics
-        self._records: list[AuditEvent] = []
+        settings = get_settings()
+        maxlen = settings.audit_memory_max_records
+        self._records: deque[AuditEvent] = deque(maxlen=maxlen)
         self._last_error: Exception | None = None
 
     @property

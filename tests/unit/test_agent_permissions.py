@@ -107,16 +107,32 @@ class TestPermissionBoundary:
         assert executor.is_allowed("knowledge_search", actor_for(DEMO_OPERATOR))
         assert executor.permission_for("document_lookup") == "tool:knowledge"
 
-    async def test_without_an_actor_the_executor_does_not_invent_one(self, registry):
-        """Unit-test / scripted mode: no identity, no RBAC layer (Day-3 behaviour)."""
+    async def test_without_an_actor_the_executor_denies_tools(self, registry):
+        """Fail-closed: no identity → tool execution denied."""
 
         executor = ToolExecutor(registry)
         result = await executor.execute(ERP_CALL)
-        assert result.success is True
+        assert result.success is False
+        assert result.error_code == "PERMISSION_DENIED"
 
     async def test_unauthenticated_actor_is_treated_as_the_most_restrictive_role(self, registry):
         executor = ToolExecutor(registry)
         result = await executor.execute(ERP_CALL, actor=Actor.anonymous("req_x"))
+        assert result.success is False
+        assert result.error_code == "PERMISSION_DENIED"
+
+    async def test_actor_none_denies_knowledge_tool(self, registry):
+        """actor=None → knowledge tool denied."""
+        executor = ToolExecutor(registry)
+        call = ToolCall(id="c", name="knowledge_search", arguments={"query": "test"})
+        result = await executor.execute(call, actor=None)
+        assert result.success is False
+        assert result.error_code == "PERMISSION_DENIED"
+
+    async def test_actor_none_denies_safety_tool(self, registry):
+        """actor=None → safety tool denied."""
+        executor = ToolExecutor(registry)
+        result = await executor.execute(SAFETY_CALL, actor=None)
         assert result.success is False
         assert result.error_code == "PERMISSION_DENIED"
 
@@ -162,6 +178,7 @@ class TestObservabilityOfToolCalls:
         }
 
     async def test_no_actor_means_no_audit_row(self, registry):
+        """Unauthenticated actor produces no audit row (no user_id)."""
         audit = memory_audit()
         executor = ToolExecutor(registry, audit=audit)
         await executor.execute(ERP_CALL, actor=None)

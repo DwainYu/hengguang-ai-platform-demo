@@ -162,3 +162,69 @@ class TestOpenAICompatibleProvider:
         )
         assert provider.provider_name in ("openai-compatible", "ollama")
         # Don't test actual HTTP calls here - they're integration tests
+
+
+class TestProviderFallback:
+    """Tests for provider fallback behavior (Fix #2)."""
+
+    @pytest.fixture
+    def failing_provider(self):
+        """A mock provider that always raises an error."""
+
+        class FailingProvider:
+            provider_name = "failing"
+
+            async def chat(self, *args, **kwargs):
+                raise RuntimeError("Provider is down")
+
+        return FailingProvider()
+
+    @pytest.mark.asyncio
+    async def test_fallback_disabled_raises_error(self, failing_provider):
+        """When fallback is disabled, provider failure should raise error."""
+        from app.config import update_settings
+
+        gateway = ModelGateway(providers={"failing": failing_provider, "mock": MockProvider()})
+        update_settings(llm_provider="failing", llm_fallback=False)
+        try:
+            with pytest.raises(RuntimeError, match="Model provider error"):
+                await gateway.chat([{"role": "user", "content": "test"}])
+        finally:
+            update_settings(llm_fallback=False)
+
+    @pytest.mark.asyncio
+    async def test_fallback_enabled_returns_degraded(self, failing_provider):
+        """When fallback is enabled, provider failure should return degraded mock response."""
+        from app.config import update_settings
+
+        gateway = ModelGateway(providers={"failing": failing_provider, "mock": MockProvider()})
+        update_settings(llm_provider="failing", llm_fallback=True)
+        try:
+            resp = await gateway.chat([{"role": "user", "content": "test"}])
+            assert resp.degraded is True
+            assert resp.provider == "mock"
+        finally:
+            update_settings(llm_fallback=False)
+
+    @pytest.mark.asyncio
+    async def test_fallback_disabled_no_mock_circuit(self, failing_provider):
+        """Even with fallback enabled, if mock fails too, should raise."""
+        from unittest.mock import AsyncMock
+
+        from app.config import update_settings
+
+        bad_mock = type(
+            "BadMock",
+            (),
+            {
+                "provider_name": "bad_mock",
+                "chat": AsyncMock(side_effect=RuntimeError("mock also failed")),
+            },
+        )()
+        gateway = ModelGateway(providers={"failing": failing_provider, "mock": bad_mock})
+        update_settings(llm_provider="failing", llm_fallback=True)
+        try:
+            with pytest.raises(RuntimeError):
+                await gateway.chat([{"role": "user", "content": "test"}])
+        finally:
+            update_settings(llm_fallback=False)

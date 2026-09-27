@@ -219,7 +219,7 @@ export function AgentPlayground() {
                     <FailureState failure={turn.failure} compact onRetry={() => void run(turn.question)} />
                   ) : turn.result ? (
                     <div
-                      className={`bubble ${turn.id === (selected?.id ?? "") ? "" : ""}`}
+                      className="bubble"
                       onClick={() => setSelectedId(turn.id)}
                       style={{ cursor: "pointer" }}
                     >

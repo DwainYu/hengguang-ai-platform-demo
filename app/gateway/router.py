@@ -56,7 +56,7 @@ class ModelGateway:
         response_format: dict | None = None,
         tools: list[dict] | None = None,
     ) -> ModelResponse:
-        """Chat with the configured provider, with automatic fallback."""
+        """Chat with the configured provider, with optional fallback."""
         settings = get_settings()
         prov = self.get_provider(provider)
         try:
@@ -68,16 +68,28 @@ class ModelGateway:
                 tools=tools,
             )
         except Exception as e:
-            # Fallback to mock on failure if not already using mock
-            if prov is not self._providers.get("mock"):
+            # Only fallback if configured and not already using mock
+            if settings.llm_fallback and prov is not self._providers.get("mock"):
                 mock_prov = self._providers.get("mock")
                 if mock_prov:
-                    return await mock_prov.chat(
+                    import logging
+
+                    logging.warning("provider fallback triggered: %s -> mock", prov.provider_name)
+                    response = await mock_prov.chat(
                         messages,
                         model=model or settings.llm_model,
                         temperature=temperature,
                         response_format=response_format,
                         tools=tools,
+                    )
+                    return ModelResponse(
+                        content=response.content,
+                        model=response.model,
+                        provider=response.provider,
+                        usage=response.usage,
+                        latency_ms=response.latency_ms,
+                        tool_calls=response.tool_calls,
+                        degraded=True,
                     )
             raise RuntimeError(f"Model provider error: {e}") from e
 

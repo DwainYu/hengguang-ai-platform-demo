@@ -147,3 +147,71 @@ class TestProviderFailureHandling:
         resp = client.post("/api/chat", json={"message": "测试"})
         assert resp.status_code == 200
         # If we had a real provider that fails, the gateway falls back to mock
+
+
+class TestChatAudit:
+    """Tests for chat audit trail coverage."""
+
+    def test_success_chat_writes_audit(self, client, audit_log):
+        """Successful chat should create an audit record with status=success."""
+        resp = client.post("/api/chat", json={"message": "你好"})
+        assert resp.status_code == 200
+        records = audit_log.records
+        assert len(records) >= 1
+        latest = records[-1]
+        assert latest.action == "chat.complete"
+        assert latest.status == "success"
+        assert latest.request_id.startswith("req_")
+        assert latest.endpoint == "POST /api/chat"
+        assert latest.model_name is not None
+
+    def test_failed_chat_writes_audit(self, client, audit_log):
+        """Failed chat (provider error) should create an audit record with status=error."""
+        from unittest.mock import patch
+
+        from app.gateway.router import gateway
+
+
+        async def failing_chat(*args, **kwargs):
+            raise RuntimeError("Simulated provider failure")
+
+        with patch.object(gateway, "chat", failing_chat):
+            resp = client.post("/api/chat", json={"message": "测试"})
+            assert resp.status_code == 502
+            body = resp.json()
+            assert body["error"]["code"] == "PROVIDER_ERROR"
+
+        records = audit_log.records
+        assert len(records) >= 1
+        latest = records[-1]
+        assert latest.action == "chat.complete"
+        assert latest.status == "error"
+        assert latest.request_id.startswith("req_")
+        assert "error_type" in latest.input_summary
+
+    def test_chat_error_preserves_request_id(self, client, audit_log):
+        """Audit record request_id must match the response request_id."""
+        from unittest.mock import patch
+
+        from app.gateway.router import gateway
+
+        async def failing_chat(*args, **kwargs):
+            raise RuntimeError("Simulated failure")
+
+        with patch.object(gateway, "chat", failing_chat):
+            resp = client.post("/api/chat", json={"message": "测试"})
+            assert resp.status_code == 502
+            response_request_id = resp.json()["request_id"]
+
+        records = audit_log.records
+        assert any(r.request_id == response_request_id for r in records)
+
+    def test_chat_does_not_leak_sensitive_data(self, client, audit_log):
+        """Audit input_summary must not contain sensitive fields."""
+        client.post("/api/chat", json={"message": "你好"})
+        records = audit_log.records
+        for record in records:
+            if record.action == "chat.complete":
+                summary = record.input_summary
+                for forbidden in ("prompt", "messages", "content", "text"):
+                    assert forbidden not in summary, f"Sensitive field '{forbidden}' found in audit"

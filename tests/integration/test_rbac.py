@@ -103,10 +103,21 @@ class TestUnauthenticated:
         assert body["request_id"].startswith("req_")
         assert body["detail"]
 
-    def test_401_advertises_the_scheme_and_demo_tokens(self, client):
+    def test_401_advertises_the_scheme_but_not_tokens(self, client):
+        """401 response must show the auth scheme but must NOT leak demo tokens."""
         response = client.get("/api/audit")
+        assert response.status_code == 401
         assert response.headers["www-authenticate"].startswith("Bearer")
-        assert "demo-admin-token" in response.json()["error"]["details"]["demo_tokens"]
+        details = response.json()["error"]["details"]
+        # Should list roles as hints, not actual tokens
+        assert "demo_tokens" in details
+        tokens_value = details["demo_tokens"]
+        assert "admin" in tokens_value
+        assert "manager" in tokens_value
+        assert "operator" in tokens_value
+        # Must NOT contain any actual token strings
+        for forbidden_token in ("demo-admin-token", "demo-manager-token", "demo-operator-token"):
+            assert forbidden_token not in tokens_value
 
     @pytest.mark.parametrize(
         "header", ["Bearer nope", "Token demo-admin-token", "Bearer", "Bearer "]

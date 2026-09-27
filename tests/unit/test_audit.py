@@ -237,3 +237,11 @@ class TestResilience:
         )
         assert event.username == "manager_demo"
         assert event.user_id == DEMO_MANAGER.user_id
+
+
+def test_429_maps_to_too_many_requests():
+    """429 status should map to TOO_MANY_REQUESTS, not VALIDATION_ERROR."""
+    from app.api.errors import ERROR_TOO_MANY_REQUESTS, error_code_for_status
+
+    assert error_code_for_status(429) == ERROR_TOO_MANY_REQUESTS
+    assert error_code_for_status(429) != "VALIDATION_ERROR"

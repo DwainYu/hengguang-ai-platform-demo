@@ -116,7 +116,18 @@ class ToolExecutor:
             )
 
         # ---- RBAC at the agent layer: checked before the tool touches any data.
-        if actor is not None and not has_permission(actor.role, tool.permission):
+        if actor is None or not actor.is_authenticated:
+            return ToolResult(
+                tool_name=call.name,
+                success=False,
+                content="",
+                metadata={"permission_required": str(tool.permission)},
+                error=(
+                    f"权限不足（{ERROR_PERMISSION_DENIED}）：未认证请求不允许使用工具 '{call.name}'"
+                ),
+                error_code=ERROR_PERMISSION_DENIED,
+            )
+        if not has_permission(actor.role, tool.permission):
             return ToolResult(
                 tool_name=call.name,
                 success=False,

@@ -12,9 +12,11 @@ from app.agent.runtime import (
     AgentRuntime,
 )
 from app.agent.tools.base import Tool, ToolResult
+from app.auth.auth import DEMO_ADMIN
 from app.config import Settings
 from app.gateway.mock import MockProvider
 from app.gateway.router import ModelGateway
+from app.observability.audit import Actor
 
 
 class SearchArgs(BaseModel):
@@ -116,7 +118,9 @@ class TestAgentRuntime:
 
     async def test_one_tool_call_then_final(self):
         runtime = make_runtime()
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_COMPLETED
         assert result.steps == 2
         assert len(result.tool_calls) == 1
@@ -133,7 +137,9 @@ class TestAgentRuntime:
 
     async def test_multiple_tool_calls(self):
         runtime = make_runtime(script=["knowledge_search", "document_lookup"])
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_COMPLETED
         assert result.steps == 3
         assert [call["name"] for call in result.tool_calls] == [
@@ -144,7 +150,9 @@ class TestAgentRuntime:
 
     async def test_max_steps_stops_the_loop(self):
         runtime = make_runtime(script=["knowledge_search"] * 20, max_steps=3)
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_MAX_STEPS
         assert result.steps == 3
         assert len(result.tool_calls) == 3
@@ -154,7 +162,9 @@ class TestAgentRuntime:
 
     async def test_max_tool_calls_stops_the_loop(self):
         runtime = make_runtime(script=["knowledge_search"] * 20, max_steps=10, max_tool_calls=2)
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_MAX_TOOL_CALLS
         assert result.steps == 2
         assert len(result.tool_calls) == 2
@@ -162,7 +172,9 @@ class TestAgentRuntime:
 
     async def test_unknown_tool_is_not_executed_but_loop_terminates(self):
         runtime = make_runtime(script=["nonexistent_tool"])
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_COMPLETED
         assert result.steps == 2
         assert len(result.tool_calls) == 1
@@ -172,7 +184,9 @@ class TestAgentRuntime:
 
     async def test_tool_failure_is_returned_as_controlled_result(self):
         runtime = make_runtime(registry=make_registry(ExplodingSearchTool(), StubLookupTool()))
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_COMPLETED
         assert result.steps == 2
         assert result.tool_calls[0]["success"] is False
@@ -189,7 +203,9 @@ class TestAgentRuntime:
             script=["document_lookup"],
             max_steps=1,
         )
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert len(result.tool_calls) == 1
         assert result.tool_calls[0]["success"] is False
         assert "Invalid arguments" in (result.tool_calls[0]["error"] or "")
@@ -201,7 +217,9 @@ class TestAgentRuntime:
                 return ToolResult(tool_name=self.name, success=True, content="", metadata={})
 
         runtime = make_runtime(registry=make_registry(EmptySearchTool()))
-        result = await runtime.run("恒光主要有哪些业务？")
+        result = await runtime.run(
+            "恒光主要有哪些业务？", actor=Actor.from_user(DEMO_ADMIN, "req_test")
+        )
         assert result.status == STATUS_COMPLETED
         assert result.steps == 2
         assert "没有足够信息" in result.answer

@@ -25,11 +25,13 @@ class ModelResponse:
     """
 
     content: str
+    content: str
     model: str
     provider: str
     usage: dict | None = None
     latency_ms: int = 0
     tool_calls: list[ToolCall] = field(default_factory=list)
+    degraded: bool = False
 
 
 @runtime_checkable

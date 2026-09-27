@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field, ValidationError
 from app.agent.executor import ToolExecutor
 from app.agent.registry import ToolRegistry
 from app.agent.tools.base import Tool, ToolResult
+from app.auth.auth import DEMO_ADMIN
 from app.gateway.base import ToolCall
+from app.observability.audit import Actor
 
 
 class EchoArgs(BaseModel):
@@ -108,7 +110,8 @@ class TestToolExecutor:
     async def test_successful_execution(self, registry: ToolRegistry):
         executor = ToolExecutor(registry)
         result = await executor.execute(
-            ToolCall(id="call_1", name="echo", arguments={"text": "ab", "times": 3})
+            ToolCall(id="call_1", name="echo", arguments={"text": "ab", "times": 3}),
+            actor=Actor.from_user(DEMO_ADMIN, "req_test"),
         )
         assert result.success is True
         assert result.content == "ababab"
@@ -117,20 +120,29 @@ class TestToolExecutor:
 
     async def test_successful_execution_uses_default_arguments(self, registry: ToolRegistry):
         executor = ToolExecutor(registry)
-        result = await executor.execute(ToolCall(id="call_1", name="echo", arguments={"text": "x"}))
+        result = await executor.execute(
+            ToolCall(id="call_1", name="echo", arguments={"text": "x"}),
+            actor=Actor.from_user(DEMO_ADMIN, "req_test"),
+        )
         assert result.success is True
         assert result.content == "xx"
 
     async def test_unknown_tool_becomes_failure(self, registry: ToolRegistry):
         executor = ToolExecutor(registry)
-        result = await executor.execute(ToolCall(id="call_2", name="missing", arguments={}))
+        result = await executor.execute(
+            ToolCall(id="call_2", name="missing", arguments={}),
+            actor=Actor.from_user(DEMO_ADMIN, "req_test"),
+        )
         assert result.success is False
         assert "Unknown tool" in (result.error or "")
         assert result.content == ""
 
     async def test_malformed_arguments_become_failure(self, registry: ToolRegistry):
         executor = ToolExecutor(registry)
-        result = await executor.execute(ToolCall(id="call_3", name="echo", arguments={"times": 1}))
+        result = await executor.execute(
+            ToolCall(id="call_3", name="echo", arguments={"times": 1}),
+            actor=Actor.from_user(DEMO_ADMIN, "req_test"),
+        )
         assert result.success is False
         assert "Invalid arguments" in (result.error or "")
         assert "text" in (result.error or "")
@@ -138,7 +150,8 @@ class TestToolExecutor:
     async def test_tool_exception_becomes_failure(self, registry: ToolRegistry):
         executor = ToolExecutor(registry)
         result = await executor.execute(
-            ToolCall(id="call_4", name="echo", arguments={"text": "boom"})
+            ToolCall(id="call_4", name="echo", arguments={"text": "boom"}),
+            actor=Actor.from_user(DEMO_ADMIN, "req_test"),
         )
         assert result.success is False
         assert "RuntimeError" in (result.error or "")

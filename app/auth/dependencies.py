@@ -26,7 +26,7 @@ from app.observability.middleware import endpoint_label, request_id_of
 AUTHORIZATION_HEADER: Final = "Authorization"
 WWW_AUTHENTICATE: Final = 'Bearer realm="hengguang-demo"'
 
-DEMO_TOKEN_HINT: Final = "、".join(f"{user.role}: {user.token}" for user in DEMO_USERS)
+DEMO_TOKEN_HINT: Final = "、".join(f"{user.role}" for user in DEMO_USERS)
 
 
 def get_current_user(request: Request) -> CurrentUser:

@@ -40,6 +40,7 @@ class Settings:
     llm_base_url: str = field(default_factory=lambda: os.environ.get("LLM_BASE_URL", ""))
     llm_api_key: str = field(default_factory=lambda: os.environ.get("LLM_API_KEY", ""))
     llm_model: str = field(default_factory=lambda: os.environ.get("LLM_MODEL", ""))
+    llm_fallback: bool = field(default_factory=lambda: _env_bool("LLM_FALLBACK", False))
     embedding_provider: str = field(
         default_factory=lambda: os.environ.get("EMBEDDING_PROVIDER", "mock")
     )
@@ -80,6 +81,9 @@ class Settings:
     )
     log_level: str = field(default_factory=lambda: _env_str("LOG_LEVEL", "INFO"))
     log_json: bool = field(default_factory=lambda: _env_bool("LOG_JSON", True))
+    audit_memory_max_records: int = field(
+        default_factory=lambda: _env_int("AUDIT_MEMORY_MAX_RECORDS", 1000)
+    )
     max_tool_rows: int = field(default_factory=lambda: _env_int("MAX_TOOL_ROWS", 50))
 
     @property

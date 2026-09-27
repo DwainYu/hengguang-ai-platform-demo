@@ -66,7 +66,6 @@ async def chat_endpoint(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": payload.message},
     ]
-    status = AuditStatus.SUCCESS
     try:
         response: ModelResponse = await gateway.chat(
             messages,
@@ -74,13 +73,24 @@ async def chat_endpoint(
             temperature=payload.temperature if payload.temperature is not None else 0.2,
         )
     except Exception as error:  # provider failure stays a controlled 502
-        status = AuditStatus.ERROR
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        audit.record_api(
+            Actor.from_user(user, request_id),
+            action=AuditAction.CHAT_COMPLETE,
+            status=AuditStatus.ERROR,
+            endpoint="POST /api/chat",
+            request_id=request_id,
+            mode=payload.mode,
+            input_summary={"chars": len(payload.message), "error_type": type(error).__name__},
+            latency_ms=latency_ms,
+        )
         raise ProviderError(
             "模型服务暂时不可用，请稍后重试。",
             details={"error_type": type(error).__name__},
         ) from error
 
     latency_ms = int((time.perf_counter() - started) * 1000)
+    status = AuditStatus.SUCCESS
     audit.record_api(
         Actor.from_user(user, request_id),
         action=AuditAction.CHAT_COMPLETE,
