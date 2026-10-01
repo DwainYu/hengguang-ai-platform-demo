@@ -18,7 +18,7 @@
 |---|---|
 | 后端 | FastAPI + uv + Pydantic v2 + SQLAlchemy 2 + Chroma（默认全 mock provider，零 API Key、零外网即可跑通） |
 | 前端 | React 18 + Vite 6 + TypeScript（无 UI 框架、无图表库，控制台风格；5 个页面全走真实 API） |
-| 测试 | `410 passed`（Day 1–3 的 139 个原始测试全部保留，未删弱） |
+| 测试 | `422 passed`（Day 1–3 的 139 个原始测试全部保留，未删弱；代码基线 `460a6ee` 时为 420） |
 | 代码检查 | `ruff check` PASS · `ruff format --check` PASS · `tsc -b && vite build` PASS |
 | 部署 | `docker compose up --build` → API `:8000` + Web Console `:3000`（nginx 反代，重启数据持久） |
 
@@ -43,10 +43,10 @@
 
 | 企业真实问题 | 本项目的答案 | 位置 |
 |---|---|---|
-| 模型供应商会换、要能统一切换与降级 | Model Gateway 抽象，业务代码不 import provider SDK；mock / OpenAI-compatible 可切换 | `app/gateway/` |
+| 模型供应商会换、要能统一切换与降级 | Model Gateway 抽象，业务代码不 import provider SDK；mock / OpenAI-compatible 可切换；降级**默认关闭**（`LLM_FALLBACK=false`），开启后响应打 `degraded=true` 标 | `app/gateway/` |
 | 模型不能凭记忆回答企业事实 | RAG：公开资料 ingest → heading 感知 chunk → Chroma → top-k + `[n]` 引用；无依据时明确说「没有足够信息」 | `app/rag/` |
 | 让模型查业务系统，但不能让它写 SQL | 白名单 Tool + 固定 operation + 参数化查询；LLM 无法传表名 / 列名 / SQL | `app/agent/tools/`, `app/db/queries.py` |
-| 谁能用哪个工具 | RBAC：路由权限 + **工具级权限**（在 `ToolExecutor` 内二次执行），越权 → 受控 `PERMISSION_DENIED`，HTTP 仍是 200、Agent 不崩 | `app/security/permissions.py` |
+| 谁能用哪个工具 | RBAC：路由权限 + **工具级权限**（在 `ToolExecutor` 内二次执行），越权 → 受控 `PERMISSION_DENIED`，HTTP 仍是 200、Agent 不崩 | `app/auth/permissions.py` |
 | 出事要能复盘 | 每次请求生成 `request_id`，同一 ID 贯穿 HTTP / Agent / Tool / 审计；`GET /api/audit/{request_id}` 一条链 | `app/observability/` |
 | 平台自身要健康 | 指标计数（请求 / 工具 / Agent / 拒绝 / 延迟）+ JSON 结构化日志 + 统一错误信封 | `GET /metrics` |
 
@@ -58,8 +58,11 @@
 - [x] **Day 4 平台化 + 业务工具**：合成 ERP 采购/库存分析 + 安全事件分析 Tool；RBAC（路由级 + 工具级，越权在 Tool 边界受控拒绝）；审计轨迹（一个 request_id 追到底）；指标 / 结构化日志；统一错误结构
 - [x] **Day 5 产品化**：Web Console（Dashboard / Agent Playground / Knowledge / Audit / Settings，角色切换 UI，RBAC 边界可见，trace 可视化，真实 API 数据，指标面板）；Docker 最终验证（API + Web，重启数据持久）；真实 LLM provider 冒烟；README / ARCHITECTURE / DEMO_SCRIPT 定稿
 
-> 测试基线：Day 1–3 完成时 `139 passed`；Day 4 后 `380 passed`；Day 5 后 `410 passed`。
-> 所有 Day 1–4 测试未删除、未弱化；Day 5 新增 30 个 Web Console 契约测试。
+> 测试基线（历史轨迹，数字对应各自完成时点）：Day 1–3 `139 passed` → Day 4 后 `380 passed` → Day 5 后 `410 passed`
+> → Audit Fix（`460a6ee`）后 `420 passed` → 当前（一致性修复 + `AuditLog.clear()` 回归测试）`422 passed`。
+> 所有 Day 1–5 测试未删除、未弱化；Day 5 新增 30 个 Web Console 契约测试，本次新增 2 个审计内存上界回归测试。
+
+> **基线口径**：本文档中 `460a6ee` 指**代码证据基线**（Day 1–5 + Audit Fix）。本轮之后的提交只改文档与两处代码一致性缺陷，不改变架构结论。
 
 ## 架构
 
@@ -189,9 +192,10 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 - 身份是三个固定 token，不是 JWT/SSO/OAuth（Day 4 明确声明）
 - 业务数据是合成 SQLite，不是真 ERP/OA/DCS；AI 不做工业控制
 - 默认 mock provider；真实 LLM 需自备 Key（配置方式见上），embedding 冒烟仍走 mock
+- `LLM_FALLBACK` 默认 **false**：provider 失败就返回受控 502 `PROVIDER_ERROR`，**不静默换成 mock**。显式开启后才会回落，且在网关层打 `degraded=true` 标（该标记目前不上 HTTP 响应字段，可靠审计行的 `model_name` 与 warning 日志识别）
 - 知识库 ingest 目前全量重建（不增量）；Chroma 为本地嵌入式，未做多副本/集群
 - Web Console 角色切换是 demo UX，不是真正的多用户登录（后端仍按 token 鉴权）
-- 指标是进程内计数，重启即清零（审计/知识库数据持久在 SQLite/Chroma，不受影响）
+- 指标是进程内计数，重启即清零（审计/知识库数据持久在 SQLite/Chroma，不受影响）；审计的进程内副本是有界 `deque`（`AUDIT_MEMORY_MAX_RECORDS`，默认 1000 条），只用于测试与调试可见性，权威记录始终在 `audit_logs` 表
 
 ## 面试讲解要点（Interview Talking Points）
 
@@ -201,13 +205,13 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 - [`docs/interview/index.html`](docs/interview/index.html) — 自包含离线复习台（浏览器直接打开，可搜索 / 按标签过滤）
 
 1. **为什么做平台层而不是 prompt 层**：化工企业真正难的是数据/权限/审计/失败处理，不是把模型接上。
-2. **Model Gateway 抽象**：业务不 import provider SDK，换供应商改配置即可，可降级到 mock。
+2. **Model Gateway 抽象**：业务不 import provider SDK，换供应商改配置即可；默认 provider 失败就报错，**不静默换成 mock**——只有显式 `LLM_FALLBACK=true` 才降级，且降级响应带 `degraded=true`，调用方能区分「模型说的」和「兜底说的」。
 3. **RAG 的 heading 感知分块**：保留标题上下文进 chunk，让引用（`[n]` + section）准确、可追溯。
 4. **Agent 的「白名单工具 + 固定 operation + 参数化 SQL」**：让 LLM 查业务系统，但它写不了 SQL。
 5. **RBAC 在 Tool 边界二次执行**：这是企业最关心的「越权调工具怎么办」——受控拒绝、审计留痕、Agent 不崩。
 6. **request_id 贯穿**：一次请求在 HTTP / Agent / Tool / 审计四处用同一 ID，出事能追到底。
 7. **指标 + 结构化日志 + 统一错误信封**：平台可观测、可排障。
-8. **测试策略**：mock provider + 合成数据保证 `410` 个测试离线、可复现、零外部依赖。
+8. **测试策略**：mock provider + 合成数据保证 `422` 个测试离线、可复现、零外部依赖。
 
 ## 项目结构
 
@@ -215,23 +219,26 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 app/
   api/        路由：chat / agent / knowledge / models / users / audit / metrics / health
   gateway/    Model Gateway + Mock/OpenAI-compatible provider
-  rag/        chunker / embeddings / ingest / retriever / citation
+  rag/        chunker / extractor / ingest / retriever / citation / prompt / store
   agent/      AgentRuntime + ToolRegistry + tools (knowledge/document/erp/safety)
   db/         合成 SQLite 初始化 + 参数化查询（operation 白名单）
-  security/   权限定义 + 角色矩阵 + Bearer 鉴权
+  auth/       权限定义 + 角色矩阵 + Bearer 鉴权（`permissions.py` / `auth.py` / `dependencies.py`）
+  embeddings/ Mock + OpenAI-compatible embedding provider
+  services/   用例编排（knowledge / agent）
   observability/ request_id / 审计 / 指标 / 结构化日志 / 错误信封
   main.py     FastAPI app 装配（CORS、中间件、启动初始化）
 data/
   documents/  公开资料（RAG 语料）      synthetic/ 合成 ERP/安全 schema+seed
   runtime/    运行产物（app.db + chroma，gitignore）
 web/          React Console（src 下 app/pages/components/services/hooks/types）
-tests/        Day 1–5 全部测试（410）
+tests/        Day 1–5 全部测试（422）
+docs/         interview/ 面试题库（Markdown 为唯一正本 + 自包含离线 HTML）
 ```
 
 ## 测试 / 质量
 
 ```bash
-uv run pytest -q            # 410 passed
+uv run pytest -q            # 422 passed
 uv run ruff check .         # PASS
 uv run ruff format --check .# PASS
 cd web && npx tsc -b && npm run build   # 前端类型检查 + 产物

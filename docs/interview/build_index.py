@@ -155,8 +155,8 @@ def main():
         q_html = []
         for qtitle, qbody in qs:
             q_html.append(
-                '<details class="q"><summary>%s</summary>'
-                f'<div class="qbody">{(md_inline(qtitle), md_block(qbody))}</div></details>'
+                f'<details class="q"><summary>{md_inline(qtitle)}</summary>'
+                f'<div class="qbody">{md_block(qbody)}</div></details>'
             )
         lead_html = md_block(lead) if lead else ""
         section_html.append(

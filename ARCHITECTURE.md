@@ -16,8 +16,8 @@
         |              |       +------+------+
         |              |       |      |      |
         v              v       v      v      v
-   LLM Providers   Vector DB  ERP  Safety  Equipment
-   (mock / OpenAI-  (Chroma)   Tool   Tool   Tool
+   LLM Providers   Vector DB  ERP  Safety Knowledge
+   (mock / OpenAI-  (Chroma)   Tool   Tool   Tools
     compatible)
         \              |              /
          \-------------+-------------/
@@ -33,14 +33,14 @@
 
 | 组件 | 模块 | 说明 |
 |---|---|---|
-| Model Gateway | `app/gateway/` | 统一 LLM 访问层。业务代码只依赖 `ModelGateway`，不直接 import provider SDK。默认 `MockProvider`，可切 OpenAI-compatible（DeepSeek/Qwen/Ollama）。 |
+| Model Gateway | `app/gateway/` | 统一 LLM 访问层。业务代码只依赖 `ModelGateway`，不直接 import provider SDK。默认 `MockProvider`，可切 OpenAI-compatible（DeepSeek/Qwen/Ollama）。provider 报错时**默认不降级**（`LLM_FALLBACK=false`，直接抛受控错误 → 502 `PROVIDER_ERROR`）；只有显式开启才回落到 mock，并在网关出口重新构造 `ModelResponse(degraded=True)` 打标（同时写 `provider fallback triggered` 日志）。边界：`degraded` 目前只存在于网关层的 `ModelResponse`，**不在 `/api/chat`、`/api/agent/run` 的 HTTP 响应模型里**——降级可从审计行的 `model_name`（mock）与该条 warning 日志识别。 |
 | Embedding | `app/embeddings/` | 可替换 `EmbeddingProvider` 抽象（`embed_documents` / `embed_query`）。默认离线 `MockEmbeddingProvider`（hash n-gram，零 API Key），可切 OpenAI-compatible `/embeddings`（`app/embeddings/openai_compatible.py`）。`build_embedding_provider()` 按配置构造。 |
 | RAG | `app/rag/` | ingest（`ingest.py` + `extractor.py`：Markdown/TXT/PDF）→ heading 感知 chunk（`chunker.py`：800–1200 字，overlap 100–200）→ embedding → Chroma persistent client（`store.py`）→ 混合检索（`retriever.py`：向量 + 词面重合融合，top_k=5）→ 带 `[n]` 引用的回答（`pipeline.py` + `prompt.py`）。检索结果必须带 document_id / title / section / page / source / score；找不到依据时回答「知识库没有足够信息」。 |
 | 知识库服务 | `app/services/knowledge_service.py` | 组合 ingest / documents / search 三个用例；API 通过 `get_knowledge_service` 依赖注入，测试可指向临时 Chroma 目录与 mock embedding。 |
-| Agent | `app/agent/` | Tool 协议 + ToolResult（`tools/base.py`）→ 白名单 Tool Registry（`registry.py`：重名/未知工具明确报错）→ Tool Executor（`executor.py`：validate → lookup → execute，异常转受控 failure）→ Agent Runtime（`runtime.py`：AgentState / Agent Loop / trace，`max_steps` + `max_tool_calls` 安全限制）。工具白名单（Day 3）：`knowledge_search`（封装 RAG 检索，citation 一路保留）、`document_lookup`；业务 Tool 逐日增加。Prompt policy（`prompts.py`）：优先知识库、不编造、无依据时明确说明。 |
+| Agent | `app/agent/` | Tool 协议 + ToolResult（`tools/base.py`）→ 白名单 Tool Registry（`registry.py`：重名/未知工具明确报错）→ Tool Executor（`executor.py`：validate → lookup → execute，异常转受控 failure）→ Agent Runtime（`runtime.py`：AgentState / Agent Loop / trace，`max_steps` + `max_tool_calls` 安全限制）。当前 4 个白名单 Tool：`knowledge_search`（封装 RAG 检索，citation 一路保留）、`document_lookup`、`erp_purchase_analysis`、`safety_incident_analysis`（`tools/` 下各模块，由 `tools/__init__.py::build_default_registry` 单点注册）。Prompt policy（`prompts.py`）：优先知识库、不编造、无依据时明确说明。 |
 | 业务数据库 | `app/db/` + `data/synthetic/` | `models.py`（9 张表 ORM，唯一事实来源）+ `database.py`（SQLite engine/session/singleton）+ `seed.py`（确定性播种：`schema.sql` 为参考 DDL，`seed.json` 提供目录 + 生成参数，时间序列相对「今天」生成）+ `queries.py`（固定参数化聚合查询）。**LLM 无法生成任意 SQL / 表名 / 列名**，只能选择白名单 operation。 |
 | RBAC | `app/auth/` | Bearer Token → 用户 → 角色 → 权限：`auth.py`（3 个演示 token）、`permissions.py`（Permission 枚举 + 角色矩阵 + 路由/工具映射）、`dependencies.py`（`get_current_user` / `require(permission)`）。缺/坏 token → 401，权限不足 → 403（并写审计）。Tool 级权限在 `app/agent/executor.py` 内二次执行，路由被绕过也不会漏。 |
-| 审计 / 指标 / 日志 | `app/observability/` | `middleware.py`（纯 ASGI：request_id、计时、指标、`X-Request-ID`）、`logging.py`（JSON 结构化日志 + request_id ContextVar）、`metrics.py`（进程内指标，`GET /metrics` 输出 JSON）、`audit.py`（`AuditLog`：API/Agent/Tool 三类事件，脱敏 input_summary，写 `audit_logs` 表 + `GET /api/audit` 读取）。 |
+| 审计 / 指标 / 日志 | `app/observability/` | `middleware.py`（纯 ASGI：request_id、计时、指标、`X-Request-ID`）、`logging.py`（JSON 结构化日志 + request_id ContextVar）、`metrics.py`（进程内指标，`GET /metrics` 输出 JSON）、`audit.py`（`AuditLog`：API/Agent/Tool 三类事件，集中脱敏 `input_summary`（denylist + 键数/长度上限），写 `audit_logs` 表 + `GET /api/audit` 读取；进程内副本是**有界 `deque`**（`AUDIT_MEMORY_MAX_RECORDS`，默认 1000，`clear()` 原地清空、保留 maxlen），写库失败只记 `last_error` + warning，**不打挂请求**；`user_id` 为空的 401 尝试只留内存与日志、不落库）。 |
 | 统一错误 | `app/api/errors.py` | `PlatformError` 层次（401/403/404/409/500）+ 四类 exception handler，输出 `{detail, request_id, error:{code,message,details}}`；不泄露 traceback、连接串与密钥。 |
 
 ## 请求生命周期（Day 4）

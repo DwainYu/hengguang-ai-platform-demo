@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+from collections import deque
 
 import pytest
 from sqlalchemy import text
 
 from app.auth.auth import DEMO_ADMIN, DEMO_MANAGER, DEMO_OPERATOR
+from app.config import get_settings, update_settings
 from app.db.database import Database
 from app.observability.audit import (
     Actor,
@@ -213,6 +215,60 @@ class TestReading:
             actor("req_count"), action=AuditAction.AUDIT_READ, status=AuditStatus.SUCCESS
         )
         assert audit.count() >= 1
+
+
+class TestMemoryBound:
+    """Regression for Fix #5: the in-memory trail is a bounded deque.
+
+    ``clear()`` used to rebind ``_records`` to a plain list, which silently
+    removed the cap for the rest of the process' lifetime. These tests pin the
+    bound, so only a real deque that keeps its ``maxlen`` can pass.
+    """
+
+    def test_clear_keeps_the_deque_and_its_maxlen(self, seeded_database):
+        original = get_settings().audit_memory_max_records
+        update_settings(audit_memory_max_records=3)
+        try:
+            recorder = AuditLog(lambda: seeded_database)
+            for index in range(2):
+                recorder.record_api(
+                    actor(f"req_pre_{index}"),
+                    action=AuditAction.CHAT_COMPLETE,
+                    status=AuditStatus.SUCCESS,
+                )
+            assert len(recorder.records) == 2
+
+            recorder.clear()
+
+            assert recorder.records == ()
+            # the cap survives the reset: still the same bounded deque
+            assert isinstance(recorder._records, deque)  # noqa: SLF001
+            assert recorder._records.maxlen == 3  # noqa: SLF001
+
+            for index in range(5):
+                recorder.record_api(
+                    actor(f"req_post_{index}"),
+                    action=AuditAction.CHAT_COMPLETE,
+                    status=AuditStatus.SUCCESS,
+                )
+            assert [event.request_id for event in recorder.records] == [
+                "req_post_2",
+                "req_post_3",
+                "req_post_4",
+            ]
+        finally:
+            update_settings(audit_memory_max_records=original)
+
+    def test_clear_does_not_touch_persisted_rows(self, audit):
+        audit.record_api(
+            actor("req_persisted"),
+            action=AuditAction.CHAT_COMPLETE,
+            status=AuditStatus.SUCCESS,
+        )
+        assert audit.list(request_id="req_persisted")["total"] == 1
+        audit.clear()
+        assert audit.records == ()
+        assert audit.list(request_id="req_persisted")["total"] == 1
 
 
 class TestResilience:

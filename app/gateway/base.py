@@ -25,7 +25,6 @@ class ModelResponse:
     """
 
     content: str
-    content: str
     model: str
     provider: str
     usage: dict | None = None

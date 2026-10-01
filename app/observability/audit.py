@@ -426,9 +426,14 @@ class AuditLog:
         return db.table_row_count(TABLE)
 
     def clear(self) -> None:
-        """Drop in-memory events (used by tests). DB rows are kept on purpose."""
+        """Drop in-memory events (used by tests). DB rows are kept on purpose.
 
-        self._records = []
+        Clears the bounded deque in place so that ``maxlen`` from
+        ``audit_memory_max_records`` survives the reset; rebinding to a plain
+        list here would silently remove the memory cap.
+        """
+
+        self._records.clear()
         self._last_error = None
 
 

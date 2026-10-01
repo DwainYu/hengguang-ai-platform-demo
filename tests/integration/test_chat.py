@@ -171,7 +171,6 @@ class TestChatAudit:
 
         from app.gateway.router import gateway
 
-
         async def failing_chat(*args, **kwargs):
             raise RuntimeError("Simulated provider failure")
 

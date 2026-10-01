@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "恒光股份 AI 平台 Demo — 合成业务数据（synthetic demo data）",
-    "disclaimer": "本文件中的全部业务数据均为人工构造的合成数据，与恒光股份（301109.SZ）真实经营、采购与安全数据无关，仅用于平台演示。",
+    "disclaimer": "本文件中的全部业务数据均为人工构造的合成数据，与恒光股份（301118.SZ）真实经营、采购与安全数据无关，仅用于平台演示。",
     "timezone": "Asia/Shanghai",
     "random_seed": 20260926,
     "days_back": 120,
