@@ -195,6 +195,11 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 
 ## 面试讲解要点（Interview Talking Points）
 
+完整面试题库与逐题标准答案（含「我的项目证据」「高危追问」「开源组件评估」「反问环节」）：
+
+- [`docs/interview/HENGGUANG_INTERVIEW_GUIDE.md`](docs/interview/HENGGUANG_INTERVIEW_GUIDE.md) — Markdown 全文
+- [`docs/interview/index.html`](docs/interview/index.html) — 自包含离线复习台（浏览器直接打开，可搜索 / 按标签过滤）
+
 1. **为什么做平台层而不是 prompt 层**：化工企业真正难的是数据/权限/审计/失败处理，不是把模型接上。
 2. **Model Gateway 抽象**：业务不 import provider SDK，换供应商改配置即可，可降级到 mock。
 3. **RAG 的 heading 感知分块**：保留标题上下文进 chunk，让引用（`[n]` + section）准确、可追溯。
