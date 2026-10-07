@@ -133,13 +133,22 @@ export function Audit() {
               onChange={(event) => setFilters({ ...filters, action: event.target.value, page: 1 })}
             >
               <option value="">action: all</option>
-              {["agent.run", "tool.call", "chat.complete", "knowledge.search", "knowledge.ingest", "models.list"].map(
-                (action) => (
-                  <option key={action} value={action}>
-                    {action}
-                  </option>
-                ),
-              )}
+              {/* Mirrors app/observability/audit.py AuditAction: a denied attempt is
+                  filed under the same action as the successful call. */}
+              {[
+                "agent.run",
+                "tool.call",
+                "chat.complete",
+                "knowledge.search",
+                "knowledge.ingest",
+                "models.list",
+                "audit.read",
+                "users.manage",
+              ].map((action) => (
+                <option key={action} value={action}>
+                  {action}
+                </option>
+              ))}
             </select>
             <select
               value={filters.tool}

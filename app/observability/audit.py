@@ -48,6 +48,7 @@ class AuditAction:
     AUDIT_READ = "audit.read"
     MODELS_LIST = "models.list"
     TOOL_CALL = "tool.call"
+    USERS_MANAGE = "users.manage"
 
 
 class AuditStatus(StrEnum):

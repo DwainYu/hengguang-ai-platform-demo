@@ -18,7 +18,7 @@
 |---|---|
 | 后端 | FastAPI + uv + Pydantic v2 + SQLAlchemy 2 + Chroma（默认全 mock provider，零 API Key、零外网即可跑通） |
 | 前端 | React 18 + Vite 6 + TypeScript（无 UI 框架、无图表库，控制台风格；5 个页面全走真实 API） |
-| 测试 | `422 passed`（Day 1–3 的 139 个原始测试全部保留，未删弱；代码基线 `460a6ee` 时为 420） |
+| 测试 | `423 passed`（Day 1–3 的 139 个原始测试全部保留，未删弱；代码基线 `460a6ee` 时为 420） |
 | 代码检查 | `ruff check` PASS · `ruff format --check` PASS · `tsc -b && vite build` PASS |
 | 部署 | `docker compose up --build` → API `:8000` + Web Console `:3000`（nginx 反代，重启数据持久） |
 
@@ -59,7 +59,7 @@
 - [x] **Day 5 产品化**：Web Console（Dashboard / Agent Playground / Knowledge / Audit / Settings，角色切换 UI，RBAC 边界可见，trace 可视化，真实 API 数据，指标面板）；Docker 最终验证（API + Web，重启数据持久）；真实 LLM provider 冒烟；README / ARCHITECTURE / DEMO_SCRIPT 定稿
 
 > 测试基线（历史轨迹，数字对应各自完成时点）：Day 1–3 `139 passed` → Day 4 后 `380 passed` → Day 5 后 `410 passed`
-> → Audit Fix（`460a6ee`）后 `420 passed` → 当前（一致性修复 + `AuditLog.clear()` 回归测试）`422 passed`。
+> → Audit Fix（`460a6ee`）后 `420 passed` → 当前（一致性修复 + `AuditLog.clear()` 回归测试）`422 passed` → 本轮实机调试（拒绝审计 action 归一 + 网关 5xx 识别）`423 passed`。
 > 所有 Day 1–5 测试未删除、未弱化；Day 5 新增 30 个 Web Console 契约测试，本次新增 2 个审计内存上界回归测试。
 
 > **基线口径**：本文档中 `460a6ee` 指**代码证据基线**（Day 1–5 + Audit Fix）。本轮之后的提交只改文档与两处代码一致性缺陷，不改变架构结论。
@@ -211,7 +211,7 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 5. **RBAC 在 Tool 边界二次执行**：这是企业最关心的「越权调工具怎么办」——受控拒绝、审计留痕、Agent 不崩。
 6. **request_id 贯穿**：一次请求在 HTTP / Agent / Tool / 审计四处用同一 ID，出事能追到底。
 7. **指标 + 结构化日志 + 统一错误信封**：平台可观测、可排障。
-8. **测试策略**：mock provider + 合成数据保证 `422` 个测试离线、可复现、零外部依赖。
+8. **测试策略**：mock provider + 合成数据保证 `423` 个测试离线、可复现、零外部依赖。
 
 ## 项目结构
 
@@ -231,14 +231,14 @@ data/
   documents/  公开资料（RAG 语料）      synthetic/ 合成 ERP/安全 schema+seed
   runtime/    运行产物（app.db + chroma，gitignore）
 web/          React Console（src 下 app/pages/components/services/hooks/types）
-tests/        Day 1–5 全部测试（422）
+tests/        Day 1–5 全部测试（423）
 docs/         interview/ 面试题库（Markdown 为唯一正本 + 自包含离线 HTML）
 ```
 
 ## 测试 / 质量
 
 ```bash
-uv run pytest -q            # 422 passed
+uv run pytest -q            # 423 passed
 uv run ruff check .         # PASS
 uv run ruff format --check .# PASS
 cd web && npx tsc -b && npm run build   # 前端类型检查 + 产物

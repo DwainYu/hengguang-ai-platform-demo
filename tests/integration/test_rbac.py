@@ -251,7 +251,25 @@ class TestDeniedCallsAreAudited:
             "SELECT action, status FROM audit_logs WHERE request_id = :rid",
             {"rid": response.json()["request_id"]},
         )
-        assert {"action": "knowledge:ingest", "status": "denied"} in [dict(row) for row in rows]
+        # The denial is filed under the same action as a successful ingest, so an
+        # `action=knowledge.ingest` filter returns completions *and* refusals.
+        assert {"action": "knowledge.ingest", "status": "denied"} in [dict(row) for row in rows]
+
+    def test_denied_action_shares_the_namespace_of_success(self, client, seeded_database):
+        """Route denials must not invent `permission:value` action names."""
+
+        before = seeded_database.query(
+            "SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'knowledge.ingest'"
+        )
+        client.post("/api/knowledge/ingest", json={}, headers=MANAGER)
+        after = seeded_database.query(
+            "SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'knowledge.ingest'"
+        )
+        assert int(after[0]["n"]) == int(before[0]["n"]) + 1
+        leaked = seeded_database.query(
+            "SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'knowledge:ingest'"
+        )
+        assert int(leaked[0]["n"]) == 0
 
     def test_agent_tool_denial_writes_a_denied_row(self, client, audit_log, seeded_database):
         response = client.post("/api/agent/run", json={"message": ERP_QUESTION}, headers=OPERATOR)

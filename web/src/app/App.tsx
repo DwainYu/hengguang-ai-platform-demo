@@ -12,7 +12,7 @@ import { useCallback } from "react";
 import { Badge } from "../components/Primitives";
 import { DemoUserProvider, ROLE_CAPABILITIES, useDemoUser } from "./DemoUserContext";
 import { ROUTES, useRoute, type RoutePath } from "./router";
-import { useAsync } from "../hooks/useAsync";
+import { useAsync, useAutoRefresh } from "../hooks/useAsync";
 import { AgentPlayground } from "../pages/AgentPlayground";
 import { Audit } from "../pages/Audit";
 import { Dashboard } from "../pages/Dashboard";
@@ -86,16 +86,24 @@ function HeaderStatus() {
       })),
     [],
   );
-  const { data, error } = useAsync(load, [revision]);
+  const { data, error, reload } = useAsync(load, [revision]);
+  // Keep the strip live: the backend can die or come back while the tab stays open,
+  // and a header that keeps reporting the last good snapshot lies about it.
+  useAutoRefresh(reload, 10_000);
+  // A failed refresh invalidates the whole snapshot: showing the last good
+  // provider / version / request count next to "API unreachable" is how a stale
+  // counter gets mistaken for live telemetry.
+  const live = error ? null : data;
 
   return (
     <div className="toolbar" title={error ? error.message : "GET /health · GET /metrics"}>
-      <Badge tone={data ? "ok" : "err"} dot>
-        {data ? "API healthy" : "API unreachable"}
+      {/* A failed refresh must win over a previously cached snapshot. */}
+      <Badge tone={error ? "err" : data ? "ok" : "warn"} dot>
+        {error ? "API unreachable" : data ? "API healthy" : "checking…"}
       </Badge>
       <span className="tag">
-        provider <b>{data?.provider ?? "—"}</b> · v{data?.version ?? "—"} · requests{" "}
-        <b>{data?.requests ?? 0}</b>
+        provider <b>{live?.provider ?? "—"}</b> · v{live?.version ?? "—"} · requests{" "}
+        <b>{live?.requests ?? 0}</b>
       </span>
     </div>
   );

@@ -30,6 +30,7 @@ export const ERROR_PERMISSION_DENIED = "PERMISSION_DENIED";
 export const ERROR_UNAUTHENTICATED = "UNAUTHENTICATED";
 export const ERROR_CONFLICT = "CONFLICT";
 export const ERROR_PROVIDER = "PROVIDER_ERROR";
+export const ERROR_NETWORK = "NETWORK_ERROR";
 
 const BASE: string = import.meta.env?.VITE_API_BASE ?? "";
 
@@ -94,6 +95,23 @@ function normalizeFailure(status: number, payload: unknown, fallbackMessage: str
   });
 }
 
+/**
+ * True when `payload` is the platform error envelope (`app/api/errors.py`).
+ *
+ * Only a JSON body carrying `detail` / `error` / `request_id` proves the response
+ * came from FastAPI. A bare proxy 500 arrives as `text/plain` (or an empty body),
+ * so it must not be mistaken for an application error.
+ */
+function isPlatformEnvelope(payload: unknown, parsedAsJson: boolean): boolean {
+  if (!parsedAsJson || typeof payload !== "object" || payload === null) return false;
+  const body = payload as { detail?: unknown; error?: unknown; request_id?: unknown };
+  return (
+    typeof body.detail === "string" ||
+    typeof body.request_id === "string" ||
+    typeof body.error === "object"
+  );
+}
+
 interface RequestOptions {
   method?: "GET" | "POST";
   body?: unknown;
@@ -128,14 +146,32 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const text = await response.text();
   let payload: unknown = null;
+  let parsedAsJson = false;
   if (text) {
     try {
       payload = JSON.parse(text);
+      parsedAsJson = true;
     } catch {
       payload = { detail: text.slice(0, 400) };
     }
   }
   if (!response.ok) {
+    // A 5xx without the JSON envelope did not come from FastAPI: it is the dev
+    // proxy (or nginx) failing to reach the backend, e.g. "500 Internal Server
+    // Error" with an empty body when uvicorn is down. Reporting it as a platform
+    // HTTP_ERROR would blame the API for something the user can fix by starting it.
+    if (response.status >= 500 && !isPlatformEnvelope(payload, parsedAsJson)) {
+      throw new ApiRequestError({
+        status: response.status,
+        code: ERROR_NETWORK,
+        message:
+          `无法连接平台 API（${path}）：网关返回 HTTP ${response.status}，` +
+          "但后端没有返回错误信封。请确认后端已启动：" +
+          "uv run uvicorn app.main:app --port 8000",
+        details: { gateway_status: response.status, raw_body: text.slice(0, 200) },
+        denied: false,
+      });
+    }
     throw normalizeFailure(
       response.status,
       payload,
