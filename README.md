@@ -170,6 +170,48 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 `POST /api/chat` 直接真实模型回答；`POST /api/agent/run` 走完 RAG 工具链，answer 为真实模型生成、
 `model != mock` 且仍保留 5 条带 citation 的 sources。**key 只留在 shell / `.env`（已 gitignore），仓库无任何密钥。**
 
+## Local Real Embedding（本地真实 embedding 开发模式）
+
+上面 Docker 部署的向量层是 mock（零依赖、CI 可跑）。要在本机验证真实检索效果，用
+`experiment/local-qwen3-embedding` 分支提供的入口：同一套 `app/` / `web/` / `tests/`，只把 embedding
+指向本机 Ollama 的 Qwen3-Embedding-0.6B。
+
+| | main（默认 Docker） | 本地真实模式 |
+| --- | --- | --- |
+| 启动 | `docker compose up --build -d` | `./scripts/run-local-real-embedding.sh` |
+| LLM | 按 `.env`（可接 ModelScope） | ModelScope `Qwen/Qwen3.8-Flash-Next` |
+| Embedding | `mock` | Ollama `qwen3-embedding:0.6b`（1024 维） |
+| 向量库 | `data/runtime/chroma` · `hengguang_knowledge` | `data/local-real-embedding/chroma` · `hengguang_knowledge_qwen3` |
+| SQLite | `data/runtime/app.db` | `data/local-real-embedding/app.db` |
+| `RAG_MIN_SCORE` | 0.15 | 0.15 |
+| 端口 | API `8000` / Web `3000` | API `127.0.0.1:8001`（不动 Docker 栈） |
+
+```bash
+ollama pull qwen3-embedding:0.6b          # 约 639 MB，一次性
+cp .env.local.example .env.local          # 可选，脚本内置同一套默认值
+./scripts/run-local-real-embedding.sh     # 探测 Ollama / 模型 / 维度 → 起 :8001 → 首次自动 ingest
+```
+
+脚本自带隔离守护：`CHROMA_PATH` 落到 `data/runtime/chroma`、`DATABASE_URL` 落到 `data/runtime/app.db`、
+`CHROMA_COLLECTION=hengguang_knowledge` 或 `EMBEDDING_PROVIDER=mock` 都会直接拒绝启动；key 只从环境变量或
+交互输入取用，**绝不打印**；`data/local-real-embedding/` 与 `.env.local` 已 gitignore。仓库根目录的 `.env`
+（Docker 用）不会被读取修改，`docker-compose.yml` 也不涉及。
+
+本地 A/B 实测（同一份 6 篇文档 / 45 chunk，只换 embedding，其余配置一致）：域内查询 top1 融合分从 mock 的
+0.24–0.59 升到 0.34–0.74，物料/产品表格块从第 2–5 位升到第 1 位；无关问题在两种模式下都拿不到有效证据。
+这是小样本演示级测量，**不是生产 benchmark**。换真实向量后融合分尺度整体抬高，所以 mock 下几乎不起作用的
+0.10 阈值在真实模式下会漏进无关结果：实测干净带为 `(0.1146, 0.1861]`（域外最高 0.1146 / 域内次位最低 0.1861），
+取 **0.15**。该数值只属于对应的那一个 collection，换 embedding 模型必须重新标定。
+
+限制（本分支已知边界，不夸大）：
+
+- **Web Console 仍连 Docker API**：nginx 反代上游是容器内的 `api:8000`，Vite dev proxy 目标写死
+  `127.0.0.1:8000`，后端也没挂 CORS 中间件（跨域预检返回 405），因此 `:3000` / `:5173` 都驱动不了 `:8001`。
+  要在浏览器里看真实 embedding 的检索效果，用 `http://127.0.0.1:8001/docs`（Swagger）或 curl。
+- 不同 provider 的向量空间互不兼容：切换 embedding 必须同时换 `CHROMA_PATH` + `CHROMA_COLLECTION` 并重新
+  ingest，不能往已有 collection 里混写（实测两套向量互比余弦 ≈ 0）。
+- 未做 Instruct 前缀、reranker、query rewrite。
+
 ## 数据边界（合成数据声明）
 
 - `data/documents/`：公开公司简介、公开年报/新闻摘要 → RAG 知识库（真实来源：公开资料）
