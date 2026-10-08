@@ -68,9 +68,12 @@ class Settings:
     rag_chunk_size: int = field(default_factory=lambda: _env_int("RAG_CHUNK_SIZE", 1000))
     rag_chunk_overlap: int = field(default_factory=lambda: _env_int("RAG_CHUNK_OVERLAP", 150))
     rag_top_k: int = field(default_factory=lambda: _env_int("RAG_TOP_K", 5))
-    # A chunk is used as RAG context only above this fused similarity score
+    # A chunk is used as RAG context only above this fused similarity score.
+    # 0.12 is the single default that holds in both vector spaces measured for it: it keeps
+    # the lowest legitimate mock-space in-domain hit (0.1244) while filtering the mock-space
+    # lexical-overlap false positive (0.1041). Kept in sync with .env.example by a unit test.
     rag_min_score: float = field(
-        default_factory=lambda: float(os.environ.get("RAG_MIN_SCORE", "0.10"))
+        default_factory=lambda: float(os.environ.get("RAG_MIN_SCORE", "0.12"))
     )
     # Agent runtime safety limits (Day 3)
     agent_max_steps: int = field(default_factory=lambda: _env_int("AGENT_MAX_STEPS", 5))
