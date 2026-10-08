@@ -130,7 +130,7 @@ autocomplete="off">
 
 <blockquote><strong>Hengguang AI Platform Engineer — Interview Preparation</strong></blockquote>
 
-<blockquote>项目：<code>hengguang-ai-platform-demo</code> ｜ <strong>代码证据基线（Code evidence baseline）：<code>460a6ee</code></strong>（Day 1–5 + Audit Fix）｜ 测试：<strong>422 passed</strong></blockquote>
+<blockquote>项目：<code>hengguang-ai-platform-demo</code> ｜ <strong>代码证据基线（Code evidence baseline）：<code>460a6ee</code></strong>（Day 1–5 + Audit Fix）｜ 测试：<strong>423 passed</strong>（main HEAD 复跑）</blockquote>
 
 <blockquote><strong>文档基线：最终一致性修复提交</strong>（本行之后新增的提交）。代码事实一律以 <code>460a6ee</code> 为准并保留该锚点；文档与测试计数以本轮修复后的工作树为准。<code>460a6ee</code> <strong>不是当前 HEAD</strong>，它是代码证据锚点。</blockquote>
 
@@ -198,7 +198,7 @@ autocomplete="off">
 
 <p>面试官好，我是 <code>[姓名]</code>，<code>[X 年 Python 后端 / 学历专业，需要本人确认]</code>。</p>
 
-<p>这一两年我把重心放在<strong>企业级 LLM 应用的平台层</strong>上：为了准备贵司这个岗位，我独立做了一个可运行、可 Docker 部署的最小企业 AI 平台原型——统一 Model Gateway、带引用的 RAG、白名单 Tool 的 Agent Runtime，外面套上 RBAC、审计、指标和错误信封，<strong>422 个测试全部离线可跑</strong>。</p>
+<p>这一两年我把重心放在<strong>企业级 LLM 应用的平台层</strong>上：为了准备贵司这个岗位，我独立做了一个可运行、可 Docker 部署的最小企业 AI 平台原型——统一 Model Gateway、带引用的 RAG、白名单 Tool 的 Agent Runtime，外面套上 RBAC、审计、指标和错误信封，<strong>423 个测试全部离线可跑</strong>。</p>
 
 <p>我今天想聊的主要就是这套东西为什么这么设计，以及哪些地方我还没做。</p>
 </div></details><details class="q"><summary>Q1-02 60 秒版（标准）</summary><div class="qbody">
@@ -210,7 +210,7 @@ autocomplete="off">
 
 
 
-<p>我的工程主线是 <strong>Python 后端 + 可交付的平台层代码</strong>：FastAPI、Pydantic 契约、SQLAlchemy、Docker Compose，以及把测试当作交付的一部分——我目前这个项目是 422 个测试（289 单元 + 131 集成），<code>ruff</code> 和 <code>tsc</code> 都是干净的。</p>
+<p>我的工程主线是 <strong>Python 后端 + 可交付的平台层代码</strong>：FastAPI、Pydantic 契约、SQLAlchemy、Docker Compose，以及把测试当作交付的一部分——我目前这个项目是 423 个测试（291 单元 + 132 集成），<code>ruff</code> 和 <code>tsc</code> 都是干净的。</p>
 
 
 
@@ -250,7 +250,7 @@ autocomplete="off">
 
 
 
-<li>422 tests（<code>uv run pytest -q</code>）：291 unit + 131 integration</li>
+<li>423 tests（<code>uv run pytest -q</code>）：291 unit + 132 integration</li>
 
 <li>Model Gateway：<code>app/gateway/base.py</code>、<code>app/gateway/router.py</code>、<code>app/gateway/openai_compatible.py</code>、<code>app/gateway/mock.py</code></li>
 
@@ -529,7 +529,7 @@ autocomplete="off">
 
 
 
-<p>我能补上的是<strong>工程习惯</strong>：422 个测试、code review 后自己找出并修掉 5 个缺陷、README/ARCHITECTURE/DEMO_SCRIPT 都写。</p>
+<p>我能补上的是<strong>工程习惯</strong>：423 个测试、code review 后自己找出并修掉 5 个缺陷、README/ARCHITECTURE/DEMO_SCRIPT 都写。</p>
 
 <p>我要补上的是<strong>生产经验</strong>：真实身份体系、多租户、配额与成本治理、私有推理（vLLM/Ollama）的容量与并发调优、面向业务部门的支持流程。这些我准备在 §22 里主动交代，而不是等被问。</p>
 
@@ -698,7 +698,7 @@ autocomplete="off">
 
 
 
-<p>它是<strong>能力证据</strong>，不是<strong>生产经验</strong>。它能证明：我能在没有外部依赖的情况下把模型、检索、Agent、权限、审计、指标和部署做成一个跑通的整体（422 个测试，Docker 可部署），并且能审自己的代码（自己发现并修了 5 个缺陷）。它不能证明：我处理过多租户、真实 ERP 数据、线上事故和生产容量。我不会用第一件去冒充第二件。</p>
+<p>它是<strong>能力证据</strong>，不是<strong>生产经验</strong>。它能证明：我能在没有外部依赖的情况下把模型、检索、Agent、权限、审计、指标和部署做成一个跑通的整体（423 个测试，Docker 可部署），并且能审自己的代码（自己发现并修了 5 个缺陷）。它不能证明：我处理过多租户、真实 ERP 数据、线上事故和生产容量。我不会用第一件去冒充第二件。</p>
 </div></details><details class="q"><summary>Q3-09 你最大的优点是什么？</summary><div class="qbody">
 <h4>Answer</h4>
 
@@ -775,7 +775,7 @@ autocomplete="off">
 
 
 
-<p>这是我针对贵司 AI 平台岗做的一个可运行、可 Docker 部署的最小企业 AI 平台原型。它想验证的不是聊天机器人，而是模型、知识、业务系统和 Agent 能不能收敛进同一个平台层：所有模型调用走统一 Model Gateway，企业知识走带 <code>[n]</code> 引用的 RAG，Agent 只能用 4 个白名单工具查业务数据（固定 operation + 参数化 SQL），外面套 RBAC、审计、指标和统一错误结构。422 个测试离线可跑。知识库用公开资料，业务数据是合成的，不接任何内部系统。</p>
+<p>这是我针对贵司 AI 平台岗做的一个可运行、可 Docker 部署的最小企业 AI 平台原型。它想验证的不是聊天机器人，而是模型、知识、业务系统和 Agent 能不能收敛进同一个平台层：所有模型调用走统一 Model Gateway，企业知识走带 <code>[n]</code> 引用的 RAG，Agent 只能用 4 个白名单工具查业务数据（固定 operation + 参数化 SQL），外面套 RBAC、审计、指标和统一错误结构。423 个测试离线可跑。知识库用公开资料，业务数据是合成的，不接任何内部系统。</p>
 </div></details><details class="q"><summary>Q4-02 60 秒版（推荐：结构完整的最短版本）</summary><div class="qbody">
 <h4>Answer</h4>
 
@@ -791,7 +791,7 @@ autocomplete="off">
 
 <p><strong>难点</strong>：最难的不是功能，是把失败路径做对——越权不能 500、provider 挂了不能静默降级、审计不能把 prompt 和凭据写进去。</p>
 
-<p><strong>测试与部署</strong>：422 个测试（291 单元 + 131 集成），全离线；Docker Compose 起 API + Web，<code>/health</code> 做启动依赖，重启后 SQLite/Chroma 数据仍在；真实模型冒烟做过。</p>
+<p><strong>测试与部署</strong>：423 个测试（291 单元 + 132 集成），全离线；Docker Compose 起 API + Web，<code>/health</code> 做启动依赖，重启后 SQLite/Chroma 数据仍在；真实模型冒烟做过。</p>
 
 <p><strong>限制</strong>：演示 token 不是 JWT/SSO，SQLite 不是生产库，业务数据是合成的，AI 不接 DCS、不做控制。</p>
 </div></details><details class="q"><summary>Q4-03 2 分钟版</summary><div class="qbody">
@@ -857,7 +857,7 @@ autocomplete="off">
 
 <p>RBAC：Bearer → <code>CurrentUser</code> → 角色 → 权限，10 个权限、3 个角色（admin/manager/operator）。权限分两个<strong>不互相继承</strong>的家族：路由权限（<code>chat:run</code>、<code>audit:read</code>、<code>knowledge:ingest</code>、<code>users:manage</code>…）和工具权限（<code>tool:knowledge</code>/<code>tool:erp</code>/<code>tool:safety</code>）。<code>ToolExecutor</code> 里再查一次，是因为 Agent loop 会绕过路由；未认证或越权 → 结构化 <code>PERMISSION_DENIED</code> + 一条 <code>denied</code> 审计。未知角色一律归到最受限的 operator（fail-closed）。</p>
 
-<p>审计与指标：每个请求 <code>request_id</code> 贯穿 <code>http.request</code> / <code>agent.run</code> / <code>tool.call</code> 三类事件，落 <code>audit_logs</code> 表；只写紧凑摘要——<code>sanitize_summary</code> 用 denylist 把 prompt、messages、content、token、api_key 这类字段全部排除，嵌套结构只留长度，字符串截断 160 字符，最多 12 个 key。<code>GET /api/audit/{request_id}</code> 一条链查到底，这个端点本身也要 <code>audit:read</code>。指标是 15 个进程内计数器（请求/成功/错误/工具调用/工具失败/权限拒绝/Agent 运行按状态/审计写入/延迟均值与峰值/uptime），<code>GET /metrics</code> 输出 JSON，<code>GET /health</code> 输出状态与建库探针。错误统一 <code>{detail, request_id, error:{code,message,details}}</code>，不返回 traceback。</p>
+<p>审计与指标：同一个 <code>request_id</code> 贯穿日志与审计两层：<code>http.request</code> 只进结构化日志（并参与指标计数），<code>agent.run</code> / <code>tool.call</code> 与 API 行为落 <code>audit_logs</code> 表；只写紧凑摘要——<code>sanitize_summary</code> 用 denylist 把 prompt、messages、content、token、api_key 这类字段全部排除，嵌套结构只留长度，字符串截断 160 字符，最多 12 个 key。<code>GET /api/audit/{request_id}</code> 一条链查到底，这个端点本身也要 <code>audit:read</code>。指标是 15 个进程内计数器（请求/成功/错误/工具调用/工具失败/权限拒绝/Agent 运行按状态/审计写入/延迟均值与峰值/uptime），<code>GET /metrics</code> 输出 JSON，<code>GET /health</code> 输出状态与建库探针。错误统一 <code>{detail, request_id, error:{code,message,details}}</code>，不返回 traceback。</p>
 
 <p>Docker 与测试：<code>docker compose up --build</code> 起 API（<code>python:3.11-slim</code> + <code>uv sync --frozen</code>，<code>/health</code> healthcheck）和 Web（<code>node:22-alpine</code> 构建 → <code>nginx:1.27-alpine</code>，<code>:3000</code>），<code>./data/runtime</code> 挂卷，<code>depends_on: service_healthy</code> 保证不 502；我验证过 stop/up 之后审计行数、Chroma 文档数、旧 request_id 的轨迹都还在。测试 420 个，<code>MockProvider</code> + <code>MockEmbeddingProvider</code> + 临时 SQLite/Chroma，零网络零 Key；其中 30 个是 Web Console 契约测试，钉死前端依赖的每个字段，防止后端字段漂移悄悄打断前端。</p>
 
@@ -877,7 +877,7 @@ autocomplete="off">
 
 
 
-<p><code>platform layer</code> <code>whitelist tool</code> <code>dual RBAC</code> <code>request_id</code> <code>422 tests</code> <code>synthetic only</code></p>
+<p><code>platform layer</code> <code>whitelist tool</code> <code>dual RBAC</code> <code>request_id</code> <code>423 tests</code> <code>synthetic only</code></p>
 
 
 
@@ -900,7 +900,7 @@ autocomplete="off">
 
 <p><code>[MY DESIGN]</code> 我把所有模型访问收在 <code>app/gateway/router.py::ModelGateway.chat</code>。业务代码（chat 端点、RAG pipeline、AgentRuntime）都只调它，不允许 import 任何 provider SDK；<code>app/gateway/base.py</code> 里的 <code>ModelProvider</code> 只是一个 <code>async chat()</code> 的 Protocol，实现侧 <code>MockProvider</code> 和 <code>OpenAICompatibleProvider</code> 各自继承 <code>BaseProvider</code>，<code>BaseProvider.chat</code> 先做入参校验（空 messages、temperature 越界直接 <code>ValueError</code>）再委派给 <code>_chat_impl</code>。</p>
 
-<p>收益有三个：① provider 可换（DeepSeek/Qwen/Ollama 都走 OpenAI 兼容协议，只改 <code>LLM_PROVIDER/LLM_BASE_URL/LLM_MODEL</code>）；② 失败与降级只有一个决策点（<code>LLM_FALLBACK</code> 开关 + <code>degraded=true</code> 打标）；③ 测试可以完全离线（422 个测试全部走 mock，不依赖外部 Key）。</p>
+<p>收益有三个：① provider 可换（DeepSeek/Qwen/Ollama 都走 OpenAI 兼容协议，只改 <code>LLM_PROVIDER/LLM_BASE_URL/LLM_MODEL</code>）；② 失败与降级只有一个决策点（<code>LLM_FALLBACK</code> 开关 + <code>degraded=true</code> 打标）；③ 测试可以完全离线（423 个测试全部走 mock，不依赖外部 Key）。</p>
 
 <p><code>[PRODUCTION NEXT]</code> 生产上我还会在同一层加：按模型的超时与重试预算、按用户/部门的限流与配额、token 与成本计量（现在 <code>usage</code> 已经从 provider 透传但没进指标）、按任务的路由策略与影子评测。</p>
 
@@ -1915,7 +1915,7 @@ autocomplete="off">
 
 
 
-<p>因为厂商 API 的差异不该渗进业务代码；而且我需要一个零网络、零 Key 的实现来跑完 422 个测试。</p>
+<p>因为厂商 API 的差异不该渗进业务代码；而且我需要一个零网络、零 Key 的实现来跑完 423 个测试。</p>
 
 
 
@@ -2014,7 +2014,7 @@ EMBEDDING_PROVIDER=mock | openai-compatible（+ EMBEDDING_BASE_URL/API_KEY/MODEL
 
 <p>还有一个刻意的门槛：<code>_init_providers()</code> 需要 <code>llm_base_url</code> <strong>和</strong> <code>llm_api_key</code> 同时非空。所以「配了个半拉子」的后果是明确的：注册表里只有 mock，<code>/api/models</code> 也看不到那个假 provider，不会出现「界面显示有 DeepSeek，实际全走 mock」。</p>
 
-<p>我实际跑通过的组合：<code>LLM_PROVIDER=openai-compatible</code> + ModelScope 端点 + <code>deepseek-ai/DeepSeek-V4-Flash-0731</code>，<code>/api/chat</code> 与 <code>/api/agent/run</code> 都走通；回答由真实模型生成、<code>provider != mock</code>，而 <strong>citation 与审计链路完全没变</strong>（embedding 仍是 mock）。</p>
+<p>我当前实际在跑的组合：<code>LLM_PROVIDER=modelscope</code> + ModelScope 端点（<code>https://api-inference.modelscope.cn/v1</code>）+ <code>Qwen/Qwen3.8-Flash-Next</code>（支持原生 tool calling），<code>/api/chat</code> 与 <code>/api/agent/run</code> 都走通；回答由真实模型生成、<code>provider != mock</code>，而 <strong>citation 与审计链路完全没变</strong>（Docker 默认 embedding 仍是 mock）。更早一轮（Day 5）跑通的是 <code>LLM_PROVIDER=openai-compatible</code> + 同一端点 + <code>deepseek-ai/DeepSeek-V4-Flash-0731</code>——两种写法都成立，因为 <code>LLM_PROVIDER</code> 只是网关的注册键，<code>/api/models</code> 的 default 判定同时认注册键和从 <code>base_url</code> 推断出的显示名。</p>
 
 
 
@@ -2366,7 +2366,7 @@ raise RuntimeError(f"Model provider error: {e}") from e</code></pre>
 
 <p>④ <strong>对比与回归</strong>：同一条评测集跑 N 个 provider（这正是网关抽象的用途），产出 <code>模型 × 指标</code> 矩阵 + 成本（<code>usage</code> 已从 provider 透传，只是还没进指标）+ P50/P95；上线前离线回归，上线后小流量影子对比；一次线上错误沉淀成一条永久回归样本。</p>
 
-<p><strong>现状（诚实）</strong>：<code>[MY DESIGN]</code> 我有的是<strong>确定性回归基础</strong>——mock provider 让「同一输入同一输出」成立，422 个测试覆盖检索、引用、拒答、工具选择、权限拒绝的断言。<strong>我没有</strong>跨模型准确率/幻觉率评测集。我不会把「测试全过」说成「效果好」。</p>
+<p><strong>现状（诚实）</strong>：<code>[MY DESIGN]</code> 我有的是<strong>确定性回归基础</strong>——mock provider 让「同一输入同一输出」成立，423 个测试覆盖检索、引用、拒答、工具选择、权限拒绝的断言。<strong>我没有</strong>跨模型准确率/幻觉率评测集。我不会把「测试全过」说成「效果好」。</p>
 
 
 
@@ -3293,7 +3293,7 @@ raise RuntimeError(f"Model provider error: {e}") from e</code></pre>
 
 <p><strong>方法</strong>：固定评测集 → 每次改动跑回归 → 记录指标差 → 立规矩：<strong>「一个指标变好」不能以「忠实度变差」为代价</strong>。</p>
 
-<p><strong>现状</strong>：<code>[MY DESIGN]</code> 我有的是<strong>确定性回归</strong>——422 个测试保证管线行为不漂移（拒答话术、引用字段、top_k、min_score、工具参数校验、权限拒绝），<strong>不是</strong>质量评测。我绝不把「测试全过」说成「RAG 效果好」。</p>
+<p><strong>现状</strong>：<code>[MY DESIGN]</code> 我有的是<strong>确定性回归</strong>——423 个测试保证管线行为不漂移（拒答话术、引用字段、top_k、min_score、工具参数校验、权限拒绝），<strong>不是</strong>质量评测。我绝不把「测试全过」说成「RAG 效果好」。</p>
 
 
 
@@ -8267,7 +8267,7 @@ rows = session.execute(text(sql), params).mappings().all()</code></pre>
 
 <li>测试新增：<code>tests/integration/test_chat.py</code>（+68 行，含失败路径审计与 provider 异常注入）、<code>test_rbac.py</code>、<code>tests/unit/test_agent_permissions.py</code></li>
 
-<li>测试数从 <code>380</code>（Day 4 后）→ Day 5 <code>410</code> → 本提交 <code>420</code> → <strong>当前 <code>422 passed</code></strong>（本轮新增 2 条 <code>AuditLog.clear()</code> 回归测试；README 已同步为 422 并把旧数字标为历史轨迹，见 §34）</li>
+<li>测试数从 <code>380</code>（Day 4 后）→ Day 5 <code>410</code> → 本提交 <code>420</code> → <strong>后续 <code>422 passed</code> → 当前 <code>423 passed</code></strong>（本轮新增 2 条 <code>AuditLog.clear()</code> 回归测试；README 已同步为 422 并把旧数字标为历史轨迹，见 §34）</li>
 
 
 
@@ -8417,7 +8417,7 @@ rows = session.execute(text(sql), params).mappings().all()</code></pre>
 
 <p><strong>#8 429 未映射</strong>：<code>_CODE_BY_STATUS</code> 缺 <code>429</code>，所以任何 429 会被标成 <code>INTERNAL_ERROR</code>。这条特别值得讲：<strong>我还没有 429 的生产者</strong>（无限流代码），但契约层已经预留了错误码，映射缺失会让将来的第一个 429 直接归错类。修的是映射表（加上 <code>ERROR_TOO_MANY_REQUESTS</code>）。<strong>「契约先行、实现后补」是可以接受的；「契约先行但契约本身错」不行。</strong></p>
 
-<p><strong>#7 / #10 死代码</strong>：<code>users.py</code> 里的无用分支、<code>AgentPlayground.tsx</code> 里一个恒真 className。删除，没有新增测试（死代码无法为它写有意义的测试；由 <code>ruff check</code> 与 422 测试保证没删掉行为）。</p>
+<p><strong>#7 / #10 死代码</strong>：<code>users.py</code> 里的无用分支、<code>AgentPlayground.tsx</code> 里一个恒真 className。删除，没有新增测试（死代码无法为它写有意义的测试；由 <code>ruff check</code> 与 423 测试保证没删掉行为）。</p>
 
 <p><strong>#9 恒空字段</strong>：<code>ChatResponse</code> 有 <code>sources: list[dict]</code> 与 <code>tool_calls: list[dict]</code>，但 <code>POST /api/chat</code> 走的是直连网关路径，<strong>永远填不上</strong>。</p>
 
@@ -8515,7 +8515,7 @@ class ModelResponse:
 
 <li>当前代码：<code>app/gateway/base.py::ModelResponse</code> 只有一份 <code>content: str</code>（重复行已删）</li>
 
-<li>当前文档：<code>README.md</code> 测试数 = 实测 <code>422 passed</code>；权限路径已统一为 <code>app/auth/permissions.py</code></li>
+<li>当前文档：<code>README.md</code> 测试数 = 实测 <code>423 passed</code>；权限路径已统一为 <code>app/auth/permissions.py</code></li>
 
 
 
@@ -8572,7 +8572,7 @@ class ModelResponse:
 
 <p><strong>② 没有质量评测（因为它让「效果」这件事我无法回答）</strong></p>
 
-<p>我有 422 个测试，全部是关于<strong>行为</strong>的（拒答话术、引用字段、参数被拒、权限判定）。没有任何一个数字能回答「DeepSeek 和 Qwen 哪个在我们场景更准」。而 <code>EMBEDDING_PROVIDER=mock</code> 的检索效果<strong>不能外推</strong>。</p>
+<p>我有 423 个测试，全部是关于<strong>行为</strong>的（拒答话术、引用字段、参数被拒、权限判定）。没有任何一个数字能回答「DeepSeek 和 Qwen 哪个在我们场景更准」。而 <code>EMBEDDING_PROVIDER=mock</code> 的检索效果<strong>不能外推</strong>。</p>
 
 <p>修法：50–100 条自有题（与语料快照同 Git 版本）→ 规则判分优先（数字/引用/是否拒答）→ <code>recall@k</code> 与 <code>faithfulness</code> 两个基础指标 → 多 provider 对比矩阵。<strong>一周能出第一版</strong>，这也是我在 §12 计划里给恒光的第一件事。</p>
 
@@ -8802,7 +8802,7 @@ class ModelResponse:
 
 
 
-<p>#1、#2、#8 的「已修」可当场指出：<code>grep -c "content: str" app/gateway/base.py</code> → 1；<code>grep -n "_records.clear()" app/observability/audit.py</code>；<code>tests/unit/test_audit.py::TestMemoryBound</code>；文档侧 <code>grep -rn "app/security\|301109" README.md data/</code> → 无匹配。#3–#7 仍可指位置（上表第三列），另有 <code>uv run pytest -q</code> → <code>422 passed</code> 与 <code>README.md</code> 对照。</p>
+<p>#1、#2、#8 的「已修」可当场指出：<code>grep -c "content: str" app/gateway/base.py</code> → 1；<code>grep -n "_records.clear()" app/observability/audit.py</code>；<code>tests/unit/test_audit.py::TestMemoryBound</code>；文档侧 <code>grep -rn "app/security\|301109" README.md data/</code> → 无匹配。#3–#7 仍可指位置（上表第三列），另有 <code>uv run pytest -q</code> → <code>423 passed</code> 与 <code>README.md</code> 对照。</p>
 
 
 
@@ -8847,7 +8847,7 @@ class ModelResponse:
 
 
 
-<p>422 个测试、5 天做完、7645 行 Python + 3133 行 TS + 4 份齐全文档——这个组合<strong>本身就招问</strong>。</p>
+<p>423 个测试、5 天做完、7645 行 Python + 3133 行 TS + 4 份齐全文档——这个组合<strong>本身就招问</strong>。</p>
 
 
 
@@ -8897,7 +8897,7 @@ class ModelResponse:
 
 <p>「每样都只有一层——<strong>这是我刻意选的</strong>。我要的是每条主链路端到端跑通、边界正确，而不是把某一个模块做深。</p>
 
-<p>验证「这层多薄」的方式：① 422 个测试不是快照测试，它们断言的是<strong>行为</strong>（越权必须拒绝、无依据必须拒答、降级必须打标、mock 失败不再降级、参数越界必须变成受控失败）；② 我能当场列出<strong>没做什么</strong>：没有 rerank、没有 BM25 混合检索、没有会话记忆、没有流式输出、没有 per-tool timeout、没有增量 ingest、没有文档级 ACL、没有成本指标、没有评测集——这 9 条我写在 §22 里。</p>
+<p>验证「这层多薄」的方式：① 423 个测试不是快照测试，它们断言的是<strong>行为</strong>（越权必须拒绝、无依据必须拒答、降级必须打标、mock 失败不再降级、参数越界必须变成受控失败）；② 我能当场列出<strong>没做什么</strong>：没有 rerank、没有 BM25 混合检索、没有会话记忆、没有流式输出、没有 per-tool timeout、没有增量 ingest、没有文档级 ACL、没有成本指标、没有评测集——这 9 条我写在 §22 里。</p>
 
 <p>所以准确说法是：<strong>边界是完整的，深度是单层的</strong>。我把它当地基不当成品。如果它只是皮，那它连皮的功能都过不了自己的测试——我特意让测试覆盖失败路径，不是只覆盖 happy path。」</p>
 
@@ -9055,7 +9055,7 @@ class ModelResponse:
 
 <p>「如果公司已经有一个 one-api，<strong>我会把 <code>OpenAICompatibleProvider</code> 的 base_url 指过去，然后删掉我自己那 60 行网关代码</strong>。这不是认输，这是它的正确用法：我的抽象是「业务代码只走一个出口」，出口后面是进程内 router 还是外部服务，是部署决策，不是契约决策。</p>
 
-<p>差别在哪：one-api 是<strong>独立进程 + 独立运维面</strong>，它擅长渠道管理、令牌分发、计费、多模型故障转移。我这个是<strong>进程内一层</strong>，它做 one-api 做不了的那部分：把「降级要打标（<code>degraded</code>）」带到 <code>ModelResponse</code> 让 Agent loop 能分支；把 provider/model 名写进审计行；在出口前拦参数校验；让 422 个测试零网络可跑。</p>
+<p>差别在哪：one-api 是<strong>独立进程 + 独立运维面</strong>，它擅长渠道管理、令牌分发、计费、多模型故障转移。我这个是<strong>进程内一层</strong>，它做 one-api 做不了的那部分：把「降级要打标（<code>degraded</code>）」带到 <code>ModelResponse</code> 让 Agent loop 能分支；把 provider/model 名写进审计行；在出口前拦参数校验；让 423 个测试零网络可跑。</p>
 
 <p><code>[PRODUCTION_NEXT]</code> 我心中的生产组合：<strong>one-api 负责渠道与配额，我这一层负责语义契约</strong>，两者不互相替代。所以如果你意思是「你是不是重复造轮子」，我的答案是：在这个 Demo 的范围里，我造的这一段（语义契约）轮子上没有；在生产里我会把渠道那一层让给专门的轮子。」</p>
 
@@ -9793,7 +9793,7 @@ class ModelResponse:
 
 
 
-<p><code>[MY DESIGN]</code> 已实测（可指证据）：422 个测试全跑 <strong>约 15 秒</strong>（23 个文件、含 6 篇文档的临时 Chroma 与 mock embedding）；<code>/health</code>、<code>/metrics</code>、<code>/api/knowledge/documents</code> 都在毫秒级（测试里用 <code>TestClient</code> 直接断言，没有慢用例）；Docker 的 <code>start_period: 40s</code> 是因为 Chroma 首次加载需要时间（这是我在部署阶段实测出来的）。</p>
+<p><code>[MY DESIGN]</code> 已实测（可指证据）：423 个测试全跑 <strong>约 15 秒</strong>（23 个文件、含 6 篇文档的临时 Chroma 与 mock embedding）；<code>/health</code>、<code>/metrics</code>、<code>/api/knowledge/documents</code> 都在毫秒级（测试里用 <code>TestClient</code> 直接断言，没有慢用例）；Docker 的 <code>start_period: 40s</code> 是因为 Chroma 首次加载需要时间（这是我在部署阶段实测出来的）。</p>
 
 <p><code>[INFERENCE]</code> 结构性判断（我会这样标注）：</p>
 
@@ -9988,7 +9988,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <li>存储侧：SQLite 锁 → 停写路径（关 ingest、暂停可写操作），或按预案恢复备份。</li>
 
-<p><strong>T+30 修复与验证</strong>：定位到具体异常类型（日志 <code>error_type</code> + request_id），修，<strong>跑全量 422 测试</strong>，再灰度恢复。</p>
+<p><strong>T+30 修复与验证</strong>：定位到具体异常类型（日志 <code>error_type</code> + request_id），修，<strong>跑全量 423 测试</strong>，再灰度恢复。</p>
 
 <p><strong>T+1 天 复盘产出</strong>：① 这次故障有没有一条测试能提前抓住？没有就写；② 有没有指标能提前 10 分钟报警？没有就补（如 <code>audit_write_failure_count</code>）；③ 用户侧可见性够不够（「502 时前端显示了什么」最常在复盘时被想起）；④ 是否要在 §11 的阶段计划里调优先级（例如「多 provider + 熔断」被这次故障证明了优先级）。</p>
 
@@ -10024,8 +10024,8 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 <blockquote>用途：面试现场被问「你确定？」时，<strong>30 秒内报出可验证的数字与文件</strong>。</blockquote>
 
 <blockquote><strong>代码证据基线：<code>460a6ee</code></strong>（Day 1–5 + Audit Fix；实测时间 2026-10-01）。本轮最终一致性修复只动了文档、两处代码缺陷与新增测试，下表已按<strong>当前工作树</strong>复核。</blockquote>
-<details class="q"><summary>27.1 数字卡（背这半页就够）</summary><div class="qbody"><table><thead><tr><th>维度</th><th>数字</th><th>我怎么验证 / 在哪</th></tr></thead><tbody><tr><td>测试总数</td><td><strong>422 passed</strong>（单元 291 + 集成 131），23 个测试文件</td><td><code>uv run pytest -q</code> → <code>422 passed, 2 warnings in ~15s</code>；<code>--collect-only -q</code> 分文件计数</td></tr><tr><td>测试增长轨迹</td><td>Day1–3 <code>139</code> → Day4 <code>380</code> → Day5 <code>410</code> → 代码基线 <code>460a6ee</code> 时 <code>420</code> → 当前 <code>422</code></td><td><code>README.md</code> 测试基线行（<strong>已与实测一致</strong>）+ <code>--collect-only -q</code></td></tr><tr><td>Python 代码量</td><td><code>app/</code> 63 个 .py 文件，<strong>7649 行</strong></td><td>`find app -name '*.py' \</td><td>xargs wc -l`</td></tr><tr><td>测试代码量</td><td>24 个 .py，<strong>4639 行</strong></td><td>同法</td></tr><tr><td>前端代码量</td><td><code>web/src</code> 17 个 .ts/.tsx，<strong>3133 行</strong>（5 个页面，无 UI 框架）</td><td>`find web/src -name '*.ts*' \</td><td>xargs wc -l`</td></tr><tr><td>文档量</td><td>4 份 2165 行（<code>SPEC 1714</code> / <code>README 246</code> / <code>ARCHITECTURE 133</code> / <code>DEMO_SCRIPT 72</code>）</td><td><code>wc -l</code></td></tr><tr><td>提交历史</td><td>代码证据基线 <code>460a6ee</code> 时 <strong>7 个提交</strong>（Day1 → Audit Fix）；含面试材料与一致性修复后为 <strong>9 个提交</strong></td><td><code>git log --oneline</code></td></tr><tr><td>HTTP 端点</td><td><strong>11 个</strong>：<code>/health</code> <code>/metrics</code> <code>/api/chat</code> <code>/api/agent/run</code> <code>/api/knowledge/{ingest,documents,search}</code> <code>/api/models</code> <code>/api/audit</code> <code>/api/audit/{request_id}</code> <code>/api/users</code></td><td><code>grep -r "@router" app/api</code></td></tr><tr><td>角色 / 权限</td><td>3 角色 / <strong>10 权限</strong>（7 路由族 + 3 工具族）</td><td><code>app/auth/permissions.py::Permission</code></td></tr><tr><td>工具</td><td><strong>4 个只读工具</strong>，operation 白名单共 <strong>7（ERP）+ 5（Safety）= 12</strong></td><td><code>app/agent/tools/</code>、<code>build_default_registry</code></td></tr><tr><td>知识库语料</td><td><strong>6 篇公开文档 / 45 个 chunk</strong></td><td>实测脚本（临时 Chroma + mock embedding）→ <code>docs: 6 chunks: 45 skipped: [] errors: []</code></td></tr><tr><td>合成业务数据</td><td>9 张表：3 用户 / 8 供应商 / 10 物料 / ~328 采购订单 / 9 库存 / 6 设备 / 6 维修记录 + 安全事件</td><td><code>data/synthetic/seed.json</code>、<code>app/db/models.py</code></td></tr><tr><td>运行依赖</td><td><strong>8 个</strong>（fastapi, uvicorn, pydantic, httpx, sqlalchemy, chromadb, pyyaml, pypdf）+ dev 3（pytest, pytest-asyncio, ruff）；<strong>无 LLM 框架</strong></td><td><code>pyproject.toml</code></td></tr><tr><td>静态检查</td><td><code>ruff check .</code> PASS；<code>ruff format --check .</code> <strong>PASS</strong>（101 个文件全部已格式化）</td><td>实测</td></tr><tr><td>前端构建</td><td><code>tsc -b &amp;&amp; vite build</code> PASS（README 记录）</td><td><code>README.md:22</code></td></tr><tr><td>关键阈值</td><td>chunk 1000/overlap 150/top_k 5/min_score 0.10/embedding 1024 维/max_steps 5（上限 20）/max_tool_calls 8（端点 top_k ≤20、limit ≤50、days ≤365、tool rows ≤50、message ≤8000、query ≤2000、审计摘要 ≤12 keys / ≤160 字符 / 内存 1000 条）</td><td><code>app/config.py</code>、<code>.env.example</code>、各 args_model</td></tr></tbody></table></div></details><details class="q"><summary>27.2 「一句话定位」索引（被问到某模块时直接跳）</summary><div class="qbody"><table><thead><tr><th>你被问到</th><th>一句话 + 一个文件</th></tr></thead><tbody><tr><td>网关</td><td>一个 <code>chat()</code>、两类 provider、三件决策（注册/路由/降级），降级要打标 —— <code>app/gateway/router.py</code></td></tr><tr><td>RAG</td><td>标题感知分块 + 融合打分 + 引用契约 + 无依据拒答 —— <code>app/rag/{chunker,retriever,prompt}.py</code></td></tr><tr><td>Agent</td><td>60 行有限 loop，三个出口保证终止 —— <code>app/agent/runtime.py</code></td></tr><tr><td>工具</td><td>白名单 → 权限 → 校验 → 执行，失败是数据不是异常 —— <code>app/agent/executor.py</code></td></tr><tr><td>权限</td><td>两族互不继承，路由 + 工具各查一次，全部 fail-closed —— <code>app/auth/permissions.py</code></td></tr><tr><td>审计</td><td>一行一动作，集中净化，被拒也记，写失败不打挂请求 —— <code>app/observability/audit.py</code></td></tr><tr><td>关联</td><td>一个 <code>req_&lt;uuid4&gt;</code> 从 HTTP 追到工具 —— <code>app/observability/middleware.py</code></td></tr><tr><td>错误</td><td>一个信封：<code>detail</code> 给人、<code>error.code</code> 给程序，绝不回 traceback —— <code>app/api/errors.py</code></td></tr><tr><td>数据</td><td>合成库 + 固定 operation + 参数绑定，模型碰不到 SQL —— <code>app/db/queries.py</code></td></tr><tr><td>部署</td><td>两个容器 + <code>:ro</code> 语料 + healthcheck 门控启动 + 变量 upstream —— <code>docker-compose.yml</code>、<code>web/nginx.conf</code></td></tr><tr><td>前端</td><td>5 个页面全走真 API，字段由 30 个契约测试钉住 —— <code>web/src/</code>、<code>tests/integration/test_web_console_contract.py</code></td></tr><tr><td>自审</td><td>10 项检查 9 项落地，且发现「修复自己引入的缺陷」—— <code>git show 460a6ee</code> + §21/§22</td></tr></tbody></table></div></details><details class="q"><summary>27.3 我可以现场做的四件事（提前确认环境能跑）</summary><div class="qbody">
-<li><code>uv run pytest -q</code> → 约 15 秒 422 绿（<strong>证明「422」不是嘴说的</strong>）；</li>
+<details class="q"><summary>27.1 数字卡（背这半页就够）</summary><div class="qbody"><table><thead><tr><th>维度</th><th>数字</th><th>我怎么验证 / 在哪</th></tr></thead><tbody><tr><td>测试总数</td><td><strong>423 passed</strong>（单元 291 + 集成 132），23 个测试文件</td><td><code>uv run pytest -q</code> → <code>423 passed, 2 warnings in ~15s</code>；<code>--collect-only -q</code> 分文件计数</td></tr><tr><td>测试增长轨迹</td><td>Day1–3 <code>139</code> → Day4 <code>380</code> → Day5 <code>410</code> → 代码基线 <code>460a6ee</code> 时 <code>420</code> → 后续 <code>422</code> → 当前 <code>423</code></td><td><code>README.md</code> 测试基线行（<strong>已与实测一致</strong>）+ <code>--collect-only -q</code></td></tr><tr><td>Python 代码量</td><td><code>app/</code> 63 个 .py 文件，<strong>7649 行</strong></td><td>`find app -name '*.py' \</td><td>xargs wc -l`</td></tr><tr><td>测试代码量</td><td>24 个 .py，<strong>4639 行</strong></td><td>同法</td></tr><tr><td>前端代码量</td><td><code>web/src</code> 17 个 .ts/.tsx，<strong>3133 行</strong>（5 个页面，无 UI 框架）</td><td>`find web/src -name '*.ts*' \</td><td>xargs wc -l`</td></tr><tr><td>文档量</td><td>4 份 2165 行（<code>SPEC 1714</code> / <code>README 246</code> / <code>ARCHITECTURE 133</code> / <code>DEMO_SCRIPT 72</code>）</td><td><code>wc -l</code></td></tr><tr><td>提交历史</td><td>代码证据基线 <code>460a6ee</code> 时 <strong>7 个提交</strong>（Day1 → Audit Fix）；含面试材料与一致性修复后为 <strong>9 个提交</strong></td><td><code>git log --oneline</code></td></tr><tr><td>HTTP 端点</td><td><strong>11 个</strong>：<code>/health</code> <code>/metrics</code> <code>/api/chat</code> <code>/api/agent/run</code> <code>/api/knowledge/{ingest,documents,search}</code> <code>/api/models</code> <code>/api/audit</code> <code>/api/audit/{request_id}</code> <code>/api/users</code></td><td><code>grep -r "@router" app/api</code></td></tr><tr><td>角色 / 权限</td><td>3 角色 / <strong>10 权限</strong>（7 路由族 + 3 工具族）</td><td><code>app/auth/permissions.py::Permission</code></td></tr><tr><td>工具</td><td><strong>4 个只读工具</strong>，operation 白名单共 <strong>7（ERP）+ 5（Safety）= 12</strong></td><td><code>app/agent/tools/</code>、<code>build_default_registry</code></td></tr><tr><td>知识库语料</td><td><strong>6 篇公开文档 / 45 个 chunk</strong></td><td>实测脚本（临时 Chroma + mock embedding）→ <code>docs: 6 chunks: 45 skipped: [] errors: []</code></td></tr><tr><td>合成业务数据</td><td>9 张表：3 用户 / 8 供应商 / 10 物料 / ~328 采购订单 / 9 库存 / 6 设备 / 6 维修记录 + 安全事件</td><td><code>data/synthetic/seed.json</code>、<code>app/db/models.py</code></td></tr><tr><td>运行依赖</td><td><strong>8 个</strong>（fastapi, uvicorn, pydantic, httpx, sqlalchemy, chromadb, pyyaml, pypdf）+ dev 3（pytest, pytest-asyncio, ruff）；<strong>无 LLM 框架</strong></td><td><code>pyproject.toml</code></td></tr><tr><td>静态检查</td><td><code>ruff check .</code> PASS；<code>ruff format --check .</code> <strong>PASS</strong>（101 个文件全部已格式化）</td><td>实测</td></tr><tr><td>前端构建</td><td><code>tsc -b &amp;&amp; vite build</code> PASS（README 记录）</td><td><code>README.md:22</code></td></tr><tr><td>关键阈值</td><td>chunk 1000/overlap 150/top_k 5/min_score 0.10/embedding 1024 维/max_steps 5（上限 20）/max_tool_calls 8（端点 top_k ≤20、limit ≤50、days ≤365、tool rows ≤50、message ≤8000、query ≤2000、审计摘要 ≤12 keys / ≤160 字符 / 内存 1000 条）</td><td><code>app/config.py</code>、<code>.env.example</code>、各 args_model</td></tr></tbody></table></div></details><details class="q"><summary>27.2 「一句话定位」索引（被问到某模块时直接跳）</summary><div class="qbody"><table><thead><tr><th>你被问到</th><th>一句话 + 一个文件</th></tr></thead><tbody><tr><td>网关</td><td>一个 <code>chat()</code>、两类 provider、三件决策（注册/路由/降级），降级要打标 —— <code>app/gateway/router.py</code></td></tr><tr><td>RAG</td><td>标题感知分块 + 融合打分 + 引用契约 + 无依据拒答 —— <code>app/rag/{chunker,retriever,prompt}.py</code></td></tr><tr><td>Agent</td><td>60 行有限 loop，三个出口保证终止 —— <code>app/agent/runtime.py</code></td></tr><tr><td>工具</td><td>白名单 → 权限 → 校验 → 执行，失败是数据不是异常 —— <code>app/agent/executor.py</code></td></tr><tr><td>权限</td><td>两族互不继承，路由 + 工具各查一次，全部 fail-closed —— <code>app/auth/permissions.py</code></td></tr><tr><td>审计</td><td>一行一动作，集中净化，被拒也记，写失败不打挂请求 —— <code>app/observability/audit.py</code></td></tr><tr><td>关联</td><td>一个 <code>req_&lt;uuid4&gt;</code> 从 HTTP 追到工具 —— <code>app/observability/middleware.py</code></td></tr><tr><td>错误</td><td>一个信封：<code>detail</code> 给人、<code>error.code</code> 给程序，绝不回 traceback —— <code>app/api/errors.py</code></td></tr><tr><td>数据</td><td>合成库 + 固定 operation + 参数绑定，模型碰不到 SQL —— <code>app/db/queries.py</code></td></tr><tr><td>部署</td><td>两个容器 + <code>:ro</code> 语料 + healthcheck 门控启动 + 变量 upstream —— <code>docker-compose.yml</code>、<code>web/nginx.conf</code></td></tr><tr><td>前端</td><td>5 个页面全走真 API，字段由 30 个契约测试钉住 —— <code>web/src/</code>、<code>tests/integration/test_web_console_contract.py</code></td></tr><tr><td>自审</td><td>10 项检查 9 项落地，且发现「修复自己引入的缺陷」—— <code>git show 460a6ee</code> + §21/§22</td></tr></tbody></table></div></details><details class="q"><summary>27.3 我可以现场做的四件事（提前确认环境能跑）</summary><div class="qbody">
+<li><code>uv run pytest -q</code> → 约 15 秒 423 绿（<strong>证明「423」不是嘴说的</strong>）；</li>
 
 <li><code>docker compose up --build</code> → 打开 <code>:3000</code> 跑 <code>DEMO_SCRIPT.md</code> 六步（约 5 分钟）；</li>
 
@@ -10043,7 +10043,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <li>报数字前先说<strong>量级与条件</strong>（「6 篇公开文档 45 个 chunk」要紧跟「语料只有这个规模，所以检索质量不能外推」）。</li>
 
-<li>不要把「422 个测试」说成「测试覆盖率 100%」——我<strong>没有</strong>测覆盖率数字（无 <code>--cov</code> 配置）。准确表述：「422 个断言覆盖的行为路径，未测覆盖率」。</li>
+<li>不要把「423 个测试」说成「测试覆盖率 100%」——我<strong>没有</strong>测覆盖率数字（无 <code>--cov</code> 配置）。准确表述：「423 个断言覆盖的行为路径，未测覆盖率」。</li>
 
 
 
@@ -10293,8 +10293,8 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 </div></details></section>
 <section id="31-15" data-tags=""><h2>31 · 快速复习表（面试前 15 分钟 / 候场）</h2>
 <blockquote>只背这张表 + §27.1 数字卡。每张卡片三行：<strong>主张 / 判据 / 证据位置</strong>。</blockquote>
-<details class="q"><summary>31.1 六大技术域（§5–§9）</summary><div class="qbody"><table><thead><tr><th>#</th><th>卡片</th><th>主张</th><th>判据 / 数字</th><th>证据</th></tr></thead><tbody><tr><td>1</td><td>网关</td><td>业务代码不许 import provider SDK；provider 注册 = 两个 env 同开；<code>degraded</code> 打标 + 默认 false</td><td><code>LLM_FALLBACK</code> 默认 false；mock 失败<strong>不再</strong>降级</td><td><code>app/gateway/{router,base,mock}.py</code>；<code>tests/unit/test_gateway.py</code>（3 条 fallback 测试）</td></tr><tr><td>2</td><td>RAG</td><td>先融合打分再截 top_k 再 min_score；「无依据」是显式拒答不是空回答</td><td>chunk 1000/150，top_k 5，min_score 0.10，over-fetch 4，候选上限 200；语料 6 篇 45 chunk</td><td><code>app/rag/{retriever,prompt}.py</code>；拒答话术在 <code>prompt.py</code></td></tr><tr><td>3</td><td>Agent</td><td>60 行有限 loop，三个终止态，工具失败是数据不是异常</td><td>max_steps 5（端点上限 20），max_tool_calls 8（端点 ≤20）；终止态 completed/max_steps/max_tool_calls</td><td><code>app/agent/runtime.py</code>；<code>tests/unit/test_agent_runtime.py</code></td></tr><tr><td>4</td><td>工具</td><td>白名单→权限→校验→执行；双视图输出；SQL 是常量</td><td>4 工具 12 operation；SQL 全在 <code>queries.py</code>，零拼接；模型看不到 SQL</td><td><code>app/agent/executor.py</code>、<code>app/db/queries.py</code></td></tr><tr><td>5</td><td>MCP</td><td>没接；工具面与注册表已是 MCP-ready 形状；治理在平台侧</td><td>1 宿主 + 4 工具 → 收益不成立</td><td>§10 Q10-05/Q10-06（这是<strong>评估</strong>，不是实现经验）</td></tr><tr><td>6</td><td>企业平台</td><td>5 层（身份/模型/知识/工具/运维），5 条铁律</td><td>权限双查、审计集中净化、request_id 全链、降级打标、只读边界</td><td>§11</td></tr></tbody></table></div></details><details class="q"><summary>31.2 平台能力（§14–§20）</summary><div class="qbody"><table><thead><tr><th>卡片</th><th>主张 / 数字</th><th>证据</th></tr></thead><tbody><tr><td>RBAC</td><td>3 角色 10 权限；7 路由族 + 3 工具族互不继承；fail-closed</td><td><code>app/auth/permissions.py</code>（39 条测试）</td></tr><tr><td>审计</td><td>一行一动作；denylist 净化；401 不落库（<code>user_id NOT NULL</code>）；失败不打挂请求</td><td><code>app/observability/audit.py</code>（19 条测试）</td></tr><tr><td>可观测</td><td><code>/health</code> + <code>/metrics</code>（15 项）+ 结构化日志；<strong>没有</strong>告警规则/分位数</td><td><code>app/observability/{middleware,metrics}.py</code></td></tr><tr><td>错误契约</td><td>统一信封：<code>detail</code> 给人 + <code>error.code</code> 给程序；<strong>429 错误码已预留但无生产者</strong></td><td><code>app/api/errors.py</code>（268 行）</td></tr><tr><td>安全</td><td>身份只来自请求；工具白名单；审计不记 prompt；合成数据声明</td><td>§17 五条纪律</td></tr><tr><td>Docker</td><td>两容器；语料 <code>:ro</code>；<code>start_period 40s</code>；nginx 变量 + resolver；无 CORS（同源）</td><td><code>docker-compose.yml</code>、<code>web/nginx.conf</code></td></tr><tr><td>数据库</td><td>SQLite 9 表；SQL 常量 + 绑定参数；julianday 是迁移时先要换的方言点</td><td><code>app/db/queries.py</code>（36 条测试）</td></tr></tbody></table></div></details><details class="q"><summary>31.3 自审与高危追问（§21/§22/§23）</summary><div class="qbody"><table><thead><tr><th>卡片</th><th>主张</th><th>备注</th></tr></thead><tbody><tr><td>9 项修复</td><td>静默降级、401 泄露 token 形状、审计失败路径、工具 fail-open、内存无界等，<strong>全部有对应测试</strong></td><td><code>git show 460a6ee</code></td></tr><tr><td>修复自己引入 2 缺陷</td><td><code>content: str</code> 重复声明；<code>clear()</code> 把有界 deque 换无界 list —— <strong>两处均已修正</strong></td><td>Q21-04 / Q22-04</td></tr><tr><td>文档漂移 3 处 <strong>已修</strong></td><td>README 测试数（现为 422）、<code>app/security/permissions.py</code> → <code>app/auth/permissions.py</code>、合成数据 README 代码 <code>301109.SZ</code> → <strong>301118.SZ</strong></td><td>§34</td></tr><tr><td>高危 9 题</td><td>AI 生成？皮？ERP 哪来的？为什么不用 Dify？one-api？没化工背景？没上线过？死模块？</td><td>§23，每题有红线</td></tr><tr><td>不知道怎么办</td><td>四句结构 + 三档表述（读过/了解/上线过）+ 6 条红线</td><td>§24</td></tr></tbody></table></div></details><details class="q"><summary>31.4 数字速记（只记这几个）</summary><div class="qbody">
-<p><code>422 passed</code>（约 15s）· <code>7649</code> Python 行 · <code>3133</code> 前端行 · <code>6 docs / 45 chunks</code> · <code>11 endpoints</code> · <code>4 tools / 12 operations</code> · <code>3 roles / 10 permissions</code> · <code>9 tables</code> · <code>8 runtime deps</code> · <code>5 defects 自审发现（其中 3 处文档漂移 + 2 处代码缺陷已修）</code> · <code>恒光 301118.SZ</code> · <code>代码证据基线 460a6ee（当时 420 tests / 7 commits）</code>。</p>
+<details class="q"><summary>31.1 六大技术域（§5–§9）</summary><div class="qbody"><table><thead><tr><th>#</th><th>卡片</th><th>主张</th><th>判据 / 数字</th><th>证据</th></tr></thead><tbody><tr><td>1</td><td>网关</td><td>业务代码不许 import provider SDK；provider 注册 = 两个 env 同开；<code>degraded</code> 打标 + 默认 false</td><td><code>LLM_FALLBACK</code> 默认 false；mock 失败<strong>不再</strong>降级</td><td><code>app/gateway/{router,base,mock}.py</code>；<code>tests/unit/test_gateway.py</code>（3 条 fallback 测试）</td></tr><tr><td>2</td><td>RAG</td><td>先融合打分再截 top_k 再 min_score；「无依据」是显式拒答不是空回答</td><td>chunk 1000/150，top_k 5，min_score 0.10，over-fetch 4，候选上限 200；语料 6 篇 45 chunk</td><td><code>app/rag/{retriever,prompt}.py</code>；拒答话术在 <code>prompt.py</code></td></tr><tr><td>3</td><td>Agent</td><td>60 行有限 loop，三个终止态，工具失败是数据不是异常</td><td>max_steps 5（端点上限 20），max_tool_calls 8（端点 ≤20）；终止态 completed/max_steps/max_tool_calls</td><td><code>app/agent/runtime.py</code>；<code>tests/unit/test_agent_runtime.py</code></td></tr><tr><td>4</td><td>工具</td><td>白名单→权限→校验→执行；双视图输出；SQL 是常量</td><td>4 工具 12 operation；SQL 全在 <code>queries.py</code>，零拼接；模型看不到 SQL</td><td><code>app/agent/executor.py</code>、<code>app/db/queries.py</code></td></tr><tr><td>5</td><td>MCP</td><td>没接；工具面与注册表已是 MCP-ready 形状；治理在平台侧</td><td>1 宿主 + 4 工具 → 收益不成立</td><td>§10 Q10-05/Q10-06（这是<strong>评估</strong>，不是实现经验）</td></tr><tr><td>6</td><td>企业平台</td><td>5 层（身份/模型/知识/工具/运维），5 条铁律</td><td>权限双查、审计集中净化、request_id 全链、降级打标、只读边界</td><td>§11</td></tr></tbody></table></div></details><details class="q"><summary>31.2 平台能力（§14–§20）</summary><div class="qbody"><table><thead><tr><th>卡片</th><th>主张 / 数字</th><th>证据</th></tr></thead><tbody><tr><td>RBAC</td><td>3 角色 10 权限；7 路由族 + 3 工具族互不继承；fail-closed</td><td><code>app/auth/permissions.py</code>（39 条测试）</td></tr><tr><td>审计</td><td>一行一动作；denylist 净化；401 不落库（<code>user_id NOT NULL</code>）；失败不打挂请求</td><td><code>app/observability/audit.py</code>（19 条测试）</td></tr><tr><td>可观测</td><td><code>/health</code> + <code>/metrics</code>（15 项）+ 结构化日志；<strong>没有</strong>告警规则/分位数</td><td><code>app/observability/{middleware,metrics}.py</code></td></tr><tr><td>错误契约</td><td>统一信封：<code>detail</code> 给人 + <code>error.code</code> 给程序；<strong>429 错误码已预留但无生产者</strong></td><td><code>app/api/errors.py</code>（268 行）</td></tr><tr><td>安全</td><td>身份只来自请求；工具白名单；审计不记 prompt；合成数据声明</td><td>§17 五条纪律</td></tr><tr><td>Docker</td><td>两容器；语料 <code>:ro</code>；<code>start_period 40s</code>；nginx 变量 + resolver；无 CORS（同源）</td><td><code>docker-compose.yml</code>、<code>web/nginx.conf</code></td></tr><tr><td>数据库</td><td>SQLite 9 表；SQL 常量 + 绑定参数；julianday 是迁移时先要换的方言点</td><td><code>app/db/queries.py</code>（36 条测试）</td></tr></tbody></table></div></details><details class="q"><summary>31.3 自审与高危追问（§21/§22/§23）</summary><div class="qbody"><table><thead><tr><th>卡片</th><th>主张</th><th>备注</th></tr></thead><tbody><tr><td>9 项修复</td><td>静默降级、401 泄露 token 形状、审计失败路径、工具 fail-open、内存无界等，<strong>全部有对应测试</strong></td><td><code>git show 460a6ee</code></td></tr><tr><td>修复自己引入 2 缺陷</td><td><code>content: str</code> 重复声明；<code>clear()</code> 把有界 deque 换无界 list —— <strong>两处均已修正</strong></td><td>Q21-04 / Q22-04</td></tr><tr><td>文档漂移 3 处 <strong>已修</strong></td><td>README 测试数（该轮修至 422，现为 423）、<code>app/security/permissions.py</code> → <code>app/auth/permissions.py</code>、合成数据 README 代码 <code>301109.SZ</code> → <strong>301118.SZ</strong></td><td>§34</td></tr><tr><td>高危 9 题</td><td>AI 生成？皮？ERP 哪来的？为什么不用 Dify？one-api？没化工背景？没上线过？死模块？</td><td>§23，每题有红线</td></tr><tr><td>不知道怎么办</td><td>四句结构 + 三档表述（读过/了解/上线过）+ 6 条红线</td><td>§24</td></tr></tbody></table></div></details><details class="q"><summary>31.4 数字速记（只记这几个）</summary><div class="qbody">
+<p><code>423 passed</code>（约 15s）· <code>7649</code> Python 行 · <code>3133</code> 前端行 · <code>6 docs / 45 chunks</code> · <code>11 endpoints</code> · <code>4 tools / 12 operations</code> · <code>3 roles / 10 permissions</code> · <code>9 tables</code> · <code>8 runtime deps</code> · <code>5 defects 自审发现（其中 3 处文档漂移 + 2 处代码缺陷已修）</code> · <code>恒光 301118.SZ</code> · <code>代码证据基线 460a6ee（当时 420 tests / 7 commits）</code>。</p>
 
 
 
@@ -10344,7 +10344,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <p>① <strong>顺序</strong>：技术面与交叉面不主动提数字；HR 面如果对方先开价，我回「我了解到岗位范围是 8k–1.2w，我更在意整体包（基数/调薪周期/公积金比例/绩效结构），您方便先给一个完整的 offer 构成吗」——<strong>把谈判对象从月薪拉到整包</strong>，这是最便宜的一步。</p>
 
-<p>② <strong>锚点用交付物不用形容词</strong>：「我独立交付了一个 422 个测试、可 Docker 部署、含权限审计网关的统一平台原型；贵司 JD 的九项职责里有七项是它的目录结构。」这句话的价值是<strong>让 HR 有东西可以向上汇报</strong>——HR 谈薪要的是理由，我给她理由。</p>
+<p>② <strong>锚点用交付物不用形容词</strong>：「我独立交付了一个 423 个测试、可 Docker 部署、含权限审计网关的统一平台原型；贵司 JD 的九项职责里有七项是它的目录结构。」这句话的价值是<strong>让 HR 有东西可以向上汇报</strong>——HR 谈薪要的是理由，我给她理由。</p>
 
 <p>③ <strong>区间而非单点</strong>：给出 10–1.2w 的区间 + 说明 1.2w 对应什么（例：含私有化部署与模型评测全责）。单点报价只给对方一个砍的点。</p>
 
@@ -10395,7 +10395,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 </div></details></section>
 <section id="35" data-tags="FACT INFERENCE"><h2>35 · 来源</h2>
 <blockquote>检索时间均为 <strong>2026-10-01</strong>。仓库类来源可本地复核；公开网络类来源以官方/准官方渠道为准，本文<strong>不引用未核实的数字</strong>（榜单排名、产品 star 数、定价均无）。</blockquote>
-<details class="q"><summary>35.1 仓库内（可本地验证）</summary><div class="qbody"><table><thead><tr><th>内容</th><th>位置</th></tr></thead><tbody><tr><td>架构与边界</td><td><code>ARCHITECTURE.md</code>（133 行）</td></tr><tr><td>本期范围与禁止清单</td><td><code>SPEC.md</code> §0（1714 行）</td></tr><tr><td>快速开始 / 已知限制 / 测试基线（与实测一致）</td><td><code>README.md</code>（246 行）</td></tr><tr><td>演示六步</td><td><code>DEMO_SCRIPT.md</code>（72 行）</td></tr><tr><td>测试实测</td><td><code>uv run pytest -q</code> → <code>422 passed, 2 warnings</code>（约 15s）</td></tr><tr><td>静态检查实测</td><td><code>uv run ruff check .</code> PASS；<code>uv run ruff format --check .</code> <strong>PASS</strong></td></tr><tr><td>自审提交</td><td><code>git log -1</code> → <code>460a6ee fix: address audit security and reliability findings</code></td></tr><tr><td>合成数据与语料声明</td><td><code>data/synthetic/README.md</code>、<code>data/documents/README.md</code></td></tr><tr><td>截图</td><td><code>screenshots/</code>（6 张，随 README）</td></tr></tbody></table></div></details><details class="q"><summary>35.2 公司公开信息（<code>[FACT]</code>，检索 2026-10-01）</summary><div class="qbody">
+<details class="q"><summary>35.1 仓库内（可本地验证）</summary><div class="qbody"><table><thead><tr><th>内容</th><th>位置</th></tr></thead><tbody><tr><td>架构与边界</td><td><code>ARCHITECTURE.md</code>（133 行）</td></tr><tr><td>本期范围与禁止清单</td><td><code>SPEC.md</code> §0（1714 行）</td></tr><tr><td>快速开始 / 已知限制 / 测试基线（与实测一致）</td><td><code>README.md</code>（246 行）</td></tr><tr><td>演示六步</td><td><code>DEMO_SCRIPT.md</code>（72 行）</td></tr><tr><td>测试实测</td><td><code>uv run pytest -q</code> → <code>423 passed, 2 warnings</code>（约 15s）</td></tr><tr><td>静态检查实测</td><td><code>uv run ruff check .</code> PASS；<code>uv run ruff format --check .</code> <strong>PASS</strong></td></tr><tr><td>自审提交</td><td><code>git log -1</code> → <code>460a6ee fix: address audit security and reliability findings</code></td></tr><tr><td>合成数据与语料声明</td><td><code>data/synthetic/README.md</code>、<code>data/documents/README.md</code></td></tr><tr><td>截图</td><td><code>screenshots/</code>（6 张，随 README）</td></tr></tbody></table></div></details><details class="q"><summary>35.2 公司公开信息（<code>[FACT]</code>，检索 2026-10-01）</summary><div class="qbody">
 <li><strong>湖南恒光科技股份有限公司</strong>，统一社会信用代码 91430500MA4L5Q6G27，2008-06-19 成立（2015-08-18 整体变更为股份公司，注册资本 31680 万元）。</li>
 
 <li>2021-10 创业板上市，股票代码 <strong>301118.SZ</strong>（来源：上市公告书 / 巨潮资讯网）。</li>
@@ -10430,7 +10430,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <li>所有 <code>恒光内部现状</code>（用什么系统、出域政策、数据现状）为 <code>[INFERENCE]</code> 或未确认，入职第一周核对。</li>
 
-<li>数字类主张只报可本地复核者：422 tests / 约 15s / 7649 行 / 6 docs / 45 chunks / 9 tables / 4 tools / 12 operations / 11 endpoints（代码证据基线 <code>460a6ee</code> 时另记 420 tests / 7 commits）。</li>
+<li>数字类主张只报可本地复核者：423 tests / 约 15s / 7649 行 / 6 docs / 45 chunks / 9 tables / 4 tools / 12 operations / 11 endpoints（代码证据基线 <code>460a6ee</code> 时另记 420 tests / 7 commits）。</li>
 
 
 
@@ -10449,7 +10449,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <li><strong>这份材料本身也遵守它教的内容</strong>：它的每个小节都有 Short Answer（可背的 20 秒版）+ Standard Answer（可展开版）+ Follow-up + Pitfalls + Keywords——<strong>如果某个小节我只写了「标准答案」而没有 Pitfalls，请把它当作我没有想清楚的地方，面试前补上。</strong></li>
 </div></details><details class="q"><summary>36.3 面试前 24 小时动作清单</summary><div class="qbody">
-<li>[ ] <code>uv run pytest -q</code>（约 15s，422）；<code>uv run ruff check .</code> 与 <code>uv run ruff format --check .</code>（均应 PASS）；<code>docker compose up --build</code> 走一遍 <code>DEMO_SCRIPT.md</code> 六步；</li>
+<li>[ ] <code>uv run pytest -q</code>（约 15s，423）；<code>uv run ruff check .</code> 与 <code>uv run ruff format --check .</code>（均应 PASS）；<code>docker compose up --build</code> 走一遍 <code>DEMO_SCRIPT.md</code> 六步；</li>
 
 <li>[ ] 把 <code>[需要本人确认]</code> 全部填完（姓名/学历/年限、薪资底线、到岗时间、AI 工具使用说明、前雇主事实、GPU 经验有无）；</li>
 
@@ -10465,7 +10465,7 @@ curl -s -H "Authorization: Bearer &lt;admin&gt;" ":8000/api/audit?status=error"<
 
 <li>§35.2 的财务数字来自年报摘要的公开转载口径，<strong>科目级数字未在原文核对</strong>（已标注）；</li>
 
-<li>全材料<strong>没有</strong>任何真实用户/生产数据支撑的效果结论；所有「检索质量好/Agent 稳定」的表述都限定在「422 个行为测试」之内（§7 Q7-12 的口径）；</li>
+<li>全材料<strong>没有</strong>任何真实用户/生产数据支撑的效果结论；所有「检索质量好/Agent 稳定」的表述都限定在「423 个行为测试」之内（§7 Q7-12 的口径）；</li>
 
 <li>本材料 2026-10-01 之后若 <code>HEAD</code> 前进，§34 的核对命令结果可能变化——<strong>复核 §27 与 §34 只需 5 分钟，先于阅读正文</strong>。</li>
 </div></details></section>
