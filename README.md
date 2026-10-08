@@ -162,13 +162,13 @@ curl http://localhost:3000/metrics                # 反代后的指标
 export LLM_PROVIDER=openai-compatible
 export LLM_BASE_URL=https://api-inference.modelscope.cn/v1   # 任意 OpenAI-compatible /v1
 export LLM_API_KEY=<你的 key>
-export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用的模型
+export LLM_MODEL=Qwen/Qwen3.8-Flash-Next                   # 当前实测模型；该端点上其它可用模型同理
 # embedding 可保持 EMBEDDING_PROVIDER=mock，RAG 检索不受影响
 ```
 
-已做真实 provider 冒烟（`ModelScope DeepSeek-V4-Flash`，embedding 仍 mock）：
-`POST /api/chat` 直接真实模型回答；`POST /api/agent/run` 走完 RAG 工具链，answer 为真实模型生成、
-`model != mock` 且仍保留 5 条带 citation 的 sources。**key 只留在 shell / `.env`（已 gitignore），仓库无任何密钥。**
+已做真实 provider 冒烟（当前实测 `ModelScope Qwen/Qwen3.8-Flash-Next`，支持原生 tool calling；
+该端点此前还跑通过 `deepseek-ai/DeepSeek-V4-Flash-0731`，两次都是 embedding 仍 mock）：
+`POST /api/chat` 直接真实模型回答；`POST /api/agent/run` 走完 RAG 工具链，answer 为真实模型生成、`model != mock`，并保留带编号 citation 的 sources。**key 只留在 shell / `.env`（已 gitignore），仓库无任何密钥。**
 
 ## Local Real Embedding（本地真实 embedding 开发模式）
 
