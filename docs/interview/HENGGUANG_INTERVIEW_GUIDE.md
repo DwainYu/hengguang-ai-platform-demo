@@ -1,7 +1,7 @@
 # 恒光 AI 平台工程师 · 面试题库与项目标准答案
 
 > **Hengguang AI Platform Engineer — Interview Preparation**
-> 项目：`hengguang-ai-platform-demo` ｜ **代码证据基线（Code evidence baseline）：`460a6ee`**（Day 1–5 + Audit Fix）｜ 测试：**422 passed**
+> 项目：`hengguang-ai-platform-demo` ｜ **代码证据基线（Code evidence baseline）：`460a6ee`**（Day 1–5 + Audit Fix）｜ 测试：**423 passed**（main HEAD 复跑）
 > **文档基线：最终一致性修复提交**（本行之后新增的提交）。代码事实一律以 `460a6ee` 为准并保留该锚点；文档与测试计数以本轮修复后的工作树为准。`460a6ee` **不是当前 HEAD**，它是代码证据锚点。
 > 本文件是唯一 canonical source；`index.html` 由它生成，不承载独立内容。
 > 信息检索/整理时间：**2026-10-01**。所有可能变化的事实都带时间标记。
@@ -63,7 +63,7 @@
 #### Answer
 
 面试官好，我是 `[姓名]`，`[X 年 Python 后端 / 学历专业，需要本人确认]`。
-这一两年我把重心放在**企业级 LLM 应用的平台层**上：为了准备贵司这个岗位，我独立做了一个可运行、可 Docker 部署的最小企业 AI 平台原型——统一 Model Gateway、带引用的 RAG、白名单 Tool 的 Agent Runtime，外面套上 RBAC、审计、指标和错误信封，**422 个测试全部离线可跑**。
+这一两年我把重心放在**企业级 LLM 应用的平台层**上：为了准备贵司这个岗位，我独立做了一个可运行、可 Docker 部署的最小企业 AI 平台原型——统一 Model Gateway、带引用的 RAG、白名单 Tool 的 Agent Runtime，外面套上 RBAC、审计、指标和错误信封，**423 个测试全部离线可跑**。
 我今天想聊的主要就是这套东西为什么这么设计，以及哪些地方我还没做。
 
 ## Q1-02 60 秒版（标准）
@@ -72,7 +72,7 @@
 
 面试官好，我是 `[姓名]`，`[学历/专业/年限，需要本人确认]`。
 
-我的工程主线是 **Python 后端 + 可交付的平台层代码**：FastAPI、Pydantic 契约、SQLAlchemy、Docker Compose，以及把测试当作交付的一部分——我目前这个项目是 422 个测试（289 单元 + 131 集成），`ruff` 和 `tsc` 都是干净的。
+我的工程主线是 **Python 后端 + 可交付的平台层代码**：FastAPI、Pydantic 契约、SQLAlchemy、Docker Compose，以及把测试当作交付的一部分——我目前这个项目是 423 个测试（291 单元 + 132 集成），`ruff` 和 `tsc` 都是干净的。
 
 第二条主线是 **LLM 应用工程**。我做了一个面向化工企业的求职原型：`hengguang-ai-platform-demo`。它想验证的不是「能不能聊天」，而是**模型、知识库、业务系统、Agent 能不能收敛进同一个平台层**，并且在这一层把权限、审计、失败处理做对。具体是四件事：所有模型访问只走一个 Model Gateway（provider 可切换、fallback 显式关闭、降级要打标）；RAG 用公开资料做 heading 感知分块 + 混合检索，回答必须带 `[n]` 引用，没依据时明确说「没有足够信息」；Agent 是一个有限步 loop，只能看到 4 个白名单工具，工具参数由 Pydantic 校验，业务查询只有固定 operation + 参数化 SQL；权限在路由和 `ToolExecutor` 两处都检查，越权是受控 `PERMISSION_DENIED` 而不是 500。
 
@@ -95,7 +95,7 @@
 
 #### My Project Evidence
 
-- 422 tests（`uv run pytest -q`）：291 unit + 131 integration
+- 423 tests（`uv run pytest -q`）：291 unit + 132 integration
 - Model Gateway：`app/gateway/base.py`、`app/gateway/router.py`、`app/gateway/openai_compatible.py`、`app/gateway/mock.py`
 - RAG：`app/rag/chunker.py`、`app/rag/retriever.py`、`app/rag/prompt.py`、`app/rag/store.py`
 - Agent：`app/agent/runtime.py`、`app/agent/executor.py`、`app/agent/registry.py`、`app/agent/tools/`
@@ -249,7 +249,7 @@ JD 的六条职责，我这个项目逐条都碰过：模型网关、RAG、Agent
 我把 JD 逐条对了一遍（下表是口述版）：
 模型网关 → `app/gateway/`；RAG/知识库 → `app/rag/`（分块、embedding、Chroma、citation、无依据拒答）；Agent 工作流 → `app/agent/`（loop、trace、`max_steps=5`/`max_tool_calls=8`）；内部系统集成 → `app/agent/tools/erp.py` + `app/db/queries.py`（白名单 operation + 参数化 SQL）；运维监控 → `GET /health`、`GET /metrics`、结构化 JSON 日志、`X-Request-ID`、Docker Compose 部署与重启持久化；模型评测与切换 → 换 provider 只改环境变量，真实模型冒烟已做。
 
-我能补上的是**工程习惯**：422 个测试、code review 后自己找出并修掉 5 个缺陷、README/ARCHITECTURE/DEMO_SCRIPT 都写。
+我能补上的是**工程习惯**：423 个测试、code review 后自己找出并修掉 5 个缺陷、README/ARCHITECTURE/DEMO_SCRIPT 都写。
 我要补上的是**生产经验**：真实身份体系、多租户、配额与成本治理、私有推理（vLLM/Ollama）的容量与并发调优、面向业务部门的支持流程。这些我准备在 §22 里主动交代，而不是等被问。
 
 **JD 对照表（可直接背）**
@@ -372,7 +372,7 @@ JD 的六条职责，我这个项目逐条都碰过：模型网关、RAG、Agent
 
 #### Answer
 
-它是**能力证据**，不是**生产经验**。它能证明：我能在没有外部依赖的情况下把模型、检索、Agent、权限、审计、指标和部署做成一个跑通的整体（422 个测试，Docker 可部署），并且能审自己的代码（自己发现并修了 5 个缺陷）。它不能证明：我处理过多租户、真实 ERP 数据、线上事故和生产容量。我不会用第一件去冒充第二件。
+它是**能力证据**，不是**生产经验**。它能证明：我能在没有外部依赖的情况下把模型、检索、Agent、权限、审计、指标和部署做成一个跑通的整体（423 个测试，Docker 可部署），并且能审自己的代码（自己发现并修了 5 个缺陷）。它不能证明：我处理过多租户、真实 ERP 数据、线上事故和生产容量。我不会用第一件去冒充第二件。
 
 ## Q3-09 你最大的优点是什么？
 
@@ -440,7 +440,7 @@ JD 的六条职责，我这个项目逐条都碰过：模型网关、RAG、Agent
 
 #### Answer
 
-这是我针对贵司 AI 平台岗做的一个可运行、可 Docker 部署的最小企业 AI 平台原型。它想验证的不是聊天机器人，而是模型、知识、业务系统和 Agent 能不能收敛进同一个平台层：所有模型调用走统一 Model Gateway，企业知识走带 `[n]` 引用的 RAG，Agent 只能用 4 个白名单工具查业务数据（固定 operation + 参数化 SQL），外面套 RBAC、审计、指标和统一错误结构。422 个测试离线可跑。知识库用公开资料，业务数据是合成的，不接任何内部系统。
+这是我针对贵司 AI 平台岗做的一个可运行、可 Docker 部署的最小企业 AI 平台原型。它想验证的不是聊天机器人，而是模型、知识、业务系统和 Agent 能不能收敛进同一个平台层：所有模型调用走统一 Model Gateway，企业知识走带 `[n]` 引用的 RAG，Agent 只能用 4 个白名单工具查业务数据（固定 operation + 参数化 SQL），外面套 RBAC、审计、指标和统一错误结构。423 个测试离线可跑。知识库用公开资料，业务数据是合成的，不接任何内部系统。
 
 ## Q4-02 60 秒版（推荐：结构完整的最短版本）
 
@@ -451,7 +451,7 @@ JD 的六条职责，我这个项目逐条都碰过：模型网关、RAG、Agent
 **架构**：Web Console（React + nginx 反代）→ FastAPI → 鉴权（Bearer → 角色 → 权限）→ Agent Runtime → 白名单工具（RAG 检索、文档元数据、ERP 采购、安全事件）→ 模型走 Model Gateway（mock 或任意 OpenAI-compatible），数据走 SQLite（合成）+ Chroma。横向是审计、指标、结构化日志和统一错误信封。
 **关键技术**：provider 抽象与显式 fallback、heading 感知分块 + 混合检索 + citation、有限步 Agent loop、双层 RBAC、`request_id` 全链路贯穿。
 **难点**：最难的不是功能，是把失败路径做对——越权不能 500、provider 挂了不能静默降级、审计不能把 prompt 和凭据写进去。
-**测试与部署**：422 个测试（291 单元 + 131 集成），全离线；Docker Compose 起 API + Web，`/health` 做启动依赖，重启后 SQLite/Chroma 数据仍在；真实模型冒烟做过。
+**测试与部署**：423 个测试（291 单元 + 132 集成），全离线；Docker Compose 起 API + Web，`/health` 做启动依赖，重启后 SQLite/Chroma 数据仍在；真实模型冒烟做过。
 **限制**：演示 token 不是 JWT/SSO，SQLite 不是生产库，业务数据是合成的，AI 不接 DCS、不做控制。
 
 ## Q4-03 2 分钟版
@@ -490,7 +490,7 @@ trace 是平台的一部分：`TraceStep` 记录每一步类型（llm / tool_cal
 
 **第 4 分钟 · 平台层（RBAC / Audit / Metrics / 错误 / Docker / 测试）**
 RBAC：Bearer → `CurrentUser` → 角色 → 权限，10 个权限、3 个角色（admin/manager/operator）。权限分两个**不互相继承**的家族：路由权限（`chat:run`、`audit:read`、`knowledge:ingest`、`users:manage`…）和工具权限（`tool:knowledge`/`tool:erp`/`tool:safety`）。`ToolExecutor` 里再查一次，是因为 Agent loop 会绕过路由；未认证或越权 → 结构化 `PERMISSION_DENIED` + 一条 `denied` 审计。未知角色一律归到最受限的 operator（fail-closed）。
-审计与指标：每个请求 `request_id` 贯穿 `http.request` / `agent.run` / `tool.call` 三类事件，落 `audit_logs` 表；只写紧凑摘要——`sanitize_summary` 用 denylist 把 prompt、messages、content、token、api_key 这类字段全部排除，嵌套结构只留长度，字符串截断 160 字符，最多 12 个 key。`GET /api/audit/{request_id}` 一条链查到底，这个端点本身也要 `audit:read`。指标是 15 个进程内计数器（请求/成功/错误/工具调用/工具失败/权限拒绝/Agent 运行按状态/审计写入/延迟均值与峰值/uptime），`GET /metrics` 输出 JSON，`GET /health` 输出状态与建库探针。错误统一 `{detail, request_id, error:{code,message,details}}`，不返回 traceback。
+审计与指标：同一个 `request_id` 贯穿日志与审计两层：`http.request` 只进结构化日志（并参与指标计数），`agent.run` / `tool.call` 与 API 行为落 `audit_logs` 表；只写紧凑摘要——`sanitize_summary` 用 denylist 把 prompt、messages、content、token、api_key 这类字段全部排除，嵌套结构只留长度，字符串截断 160 字符，最多 12 个 key。`GET /api/audit/{request_id}` 一条链查到底，这个端点本身也要 `audit:read`。指标是 15 个进程内计数器（请求/成功/错误/工具调用/工具失败/权限拒绝/Agent 运行按状态/审计写入/延迟均值与峰值/uptime），`GET /metrics` 输出 JSON，`GET /health` 输出状态与建库探针。错误统一 `{detail, request_id, error:{code,message,details}}`，不返回 traceback。
 Docker 与测试：`docker compose up --build` 起 API（`python:3.11-slim` + `uv sync --frozen`，`/health` healthcheck）和 Web（`node:22-alpine` 构建 → `nginx:1.27-alpine`，`:3000`），`./data/runtime` 挂卷，`depends_on: service_healthy` 保证不 502；我验证过 stop/up 之后审计行数、Chroma 文档数、旧 request_id 的轨迹都还在。测试 420 个，`MockProvider` + `MockEmbeddingProvider` + 临时 SQLite/Chroma，零网络零 Key；其中 30 个是 Web Console 契约测试，钉死前端依赖的每个字段，防止后端字段漂移悄悄打断前端。
 
 **第 5 分钟 · 我审过自己 + 限制 + 下一步（收尾）**
@@ -500,7 +500,7 @@ Code review 找到 5 个问题：错误路径漏审计、静默降级、401 泄�
 
 #### Interview Keywords
 
-`platform layer` `whitelist tool` `dual RBAC` `request_id` `422 tests` `synthetic only`
+`platform layer` `whitelist tool` `dual RBAC` `request_id` `423 tests` `synthetic only`
 
 ---
 
@@ -517,7 +517,7 @@ Code review 找到 5 个问题：错误路径漏审计、静默降级、401 泄�
 #### Standard Answer
 
 `[MY DESIGN]` 我把所有模型访问收在 `app/gateway/router.py::ModelGateway.chat`。业务代码（chat 端点、RAG pipeline、AgentRuntime）都只调它，不允许 import 任何 provider SDK；`app/gateway/base.py` 里的 `ModelProvider` 只是一个 `async chat()` 的 Protocol，实现侧 `MockProvider` 和 `OpenAICompatibleProvider` 各自继承 `BaseProvider`，`BaseProvider.chat` 先做入参校验（空 messages、temperature 越界直接 `ValueError`）再委派给 `_chat_impl`。
-收益有三个：① provider 可换（DeepSeek/Qwen/Ollama 都走 OpenAI 兼容协议，只改 `LLM_PROVIDER/LLM_BASE_URL/LLM_MODEL`）；② 失败与降级只有一个决策点（`LLM_FALLBACK` 开关 + `degraded=true` 打标）；③ 测试可以完全离线（422 个测试全部走 mock，不依赖外部 Key）。
+收益有三个：① provider 可换（DeepSeek/Qwen/Ollama 都走 OpenAI 兼容协议，只改 `LLM_PROVIDER/LLM_BASE_URL/LLM_MODEL`）；② 失败与降级只有一个决策点（`LLM_FALLBACK` 开关 + `degraded=true` 打标）；③ 测试可以完全离线（423 个测试全部走 mock，不依赖外部 Key）。
 `[PRODUCTION NEXT]` 生产上我还会在同一层加：按模型的超时与重试预算、按用户/部门的限流与配额、token 与成本计量（现在 `usage` 已经从 provider 透传但没进指标）、按任务的路由策略与影子评测。
 
 #### My Project Evidence
@@ -1070,7 +1070,7 @@ Audit 回答「这一次发生了什么、谁做的」，是取证粒度；Metri
 
 #### Short Answer
 
-因为厂商 API 的差异不该渗进业务代码；而且我需要一个零网络、零 Key 的实现来跑完 422 个测试。
+因为厂商 API 的差异不该渗进业务代码；而且我需要一个零网络、零 Key 的实现来跑完 423 个测试。
 
 #### Standard Answer
 
@@ -1130,7 +1130,7 @@ EMBEDDING_PROVIDER=mock | openai-compatible（+ EMBEDDING_BASE_URL/API_KEY/MODEL
 ```
 一个我该主动说的机制：`get_settings()` 是 late-bound（请求路径每次读），但 **provider 注册发生在 `ModelGateway` 构造期**，所以「换 provider」实际是进程启动时决定的——我不会假装运行期热切换已实现。
 还有一个刻意的门槛：`_init_providers()` 需要 `llm_base_url` **和** `llm_api_key` 同时非空。所以「配了个半拉子」的后果是明确的：注册表里只有 mock，`/api/models` 也看不到那个假 provider，不会出现「界面显示有 DeepSeek，实际全走 mock」。
-我实际跑通过的组合：`LLM_PROVIDER=openai-compatible` + ModelScope 端点 + `deepseek-ai/DeepSeek-V4-Flash-0731`，`/api/chat` 与 `/api/agent/run` 都走通；回答由真实模型生成、`provider != mock`，而 **citation 与审计链路完全没变**（embedding 仍是 mock）。
+我当前实际在跑的组合：`LLM_PROVIDER=modelscope` + ModelScope 端点（`https://api-inference.modelscope.cn/v1`）+ `Qwen/Qwen3.8-Flash-Next`（支持原生 tool calling），`/api/chat` 与 `/api/agent/run` 都走通；回答由真实模型生成、`provider != mock`，而 **citation 与审计链路完全没变**（Docker 默认 embedding 仍是 mock）。更早一轮（Day 5）跑通的是 `LLM_PROVIDER=openai-compatible` + 同一端点 + `deepseek-ai/DeepSeek-V4-Flash-0731`——两种写法都成立，因为 `LLM_PROVIDER` 只是网关的注册键，`/api/models` 的 default 判定同时认注册键和从 `base_url` 推断出的显示名。
 
 #### My Project Evidence
 
@@ -1324,7 +1324,7 @@ raise RuntimeError(f"Model provider error: {e}") from e
 ② **评测集**：每类 30–100 条，含输入、期望要点、必须出现的引用、**禁止出现的内容**（如编造的数字/产能）。版本化在 Git 里，**与知识库快照一起锁版**——语料一变，分数就没有可比性，这是最容易被忽略的一致性陷阱。
 ③ **判分**：能用规则就用规则（数字对不对、引用 `document_id` 对不对、是否出现「没有足够信息」）；必须语义判断才用 LLM-as-judge，且 judge 固定模型 + 固定 prompt + 人工抽检，否则只是把不稳定往上搬了一层。
 ④ **对比与回归**：同一条评测集跑 N 个 provider（这正是网关抽象的用途），产出 `模型 × 指标` 矩阵 + 成本（`usage` 已从 provider 透传，只是还没进指标）+ P50/P95；上线前离线回归，上线后小流量影子对比；一次线上错误沉淀成一条永久回归样本。
-**现状（诚实）**：`[MY DESIGN]` 我有的是**确定性回归基础**——mock provider 让「同一输入同一输出」成立，422 个测试覆盖检索、引用、拒答、工具选择、权限拒绝的断言。**我没有**跨模型准确率/幻觉率评测集。我不会把「测试全过」说成「效果好」。
+**现状（诚实）**：`[MY DESIGN]` 我有的是**确定性回归基础**——mock provider 让「同一输入同一输出」成立，423 个测试覆盖检索、引用、拒答、工具选择、权限拒绝的断言。**我没有**跨模型准确率/幻觉率评测集。我不会把「测试全过」说成「效果好」。
 
 #### My Project Evidence
 
@@ -1853,7 +1853,7 @@ RAG 改的是「模型这次能看到什么」，fine-tuning 改的是「模型�
 ③ **系统段**：P50/P95 延迟、失败率、工具调用成功率、单问 token 与成本。我这层已埋好一半：`metrics` 有 `requests_total / requests_by_endpoint / latency_ms_sum / tool_call_count / tool_error_count / permission_denied_count / agent_runs_by_status / error_by_code`，缺的是 token/成本维度。
 ④ **运营段（最常被忽略，但决定生死）**：点踩率与反馈文本、空召回 top query（=补料清单）、被引用最多的文档（=该重点维护的资产）、**过期文档命中比例**（制度过期比没制度更危险）。
 **方法**：固定评测集 → 每次改动跑回归 → 记录指标差 → 立规矩：**「一个指标变好」不能以「忠实度变差」为代价**。
-**现状**：`[MY DESIGN]` 我有的是**确定性回归**——422 个测试保证管线行为不漂移（拒答话术、引用字段、top_k、min_score、工具参数校验、权限拒绝），**不是**质量评测。我绝不把「测试全过」说成「RAG 效果好」。
+**现状**：`[MY DESIGN]` 我有的是**确定性回归**——423 个测试保证管线行为不漂移（拒答话术、引用字段、top_k、min_score、工具参数校验、权限拒绝），**不是**质量评测。我绝不把「测试全过」说成「RAG 效果好」。
 
 #### My Project Evidence
 
@@ -4706,7 +4706,7 @@ rows = session.execute(text(sql), params).mappings().all()
 - `git log -1 460a6ee`（提交信息逐条列了 Fix #1–#10）
 - 变更文件：`app/{api/chat.py,api/errors.py,agent/executor.py,auth/dependencies.py,config.py,gateway/base.py,gateway/router.py,observability/audit.py}`
 - 测试新增：`tests/integration/test_chat.py`（+68 行，含失败路径审计与 provider 异常注入）、`test_rbac.py`、`tests/unit/test_agent_permissions.py`
-- 测试数从 `380`（Day 4 后）→ Day 5 `410` → 本提交 `420` → **当前 `422 passed`**（本轮新增 2 条 `AuditLog.clear()` 回归测试；README 已同步为 422 并把旧数字标为历史轨迹，见 §34）
+- 测试数从 `380`（Day 4 后）→ Day 5 `410` → 本提交 `420` → **后续 `422 passed` → 当前 `423 passed`**（本轮新增 2 条 `AuditLog.clear()` 回归测试；README 已同步为 422 并把旧数字标为历史轨迹，见 §34）
 
 #### Follow-up Questions
 
@@ -4787,7 +4787,7 @@ rows = session.execute(text(sql), params).mappings().all()
 
 **#3 401 details 泄露 token**：原 `DEMO_TOKEN_HINT = "、".join(f"{user.role}: {user.token}")` 会出现在 401 响应的 `details.demo_tokens` 里。这些是公开演示凭据，所以不是泄露**机密的事故**，但它是**「错误响应会告诉你该怎么绕过它」**这一类 API 设计缺陷的典型形状。修复后只保留角色名列表（`"、".join(f"{user.role}")`），把「怎么拿到 token」留在 README 与 DEMO_SCRIPT 里——**文档该说的不说成 API 义务**。
 **#8 429 未映射**：`_CODE_BY_STATUS` 缺 `429`，所以任何 429 会被标成 `INTERNAL_ERROR`。这条特别值得讲：**我还没有 429 的生产者**（无限流代码），但契约层已经预留了错误码，映射缺失会让将来的第一个 429 直接归错类。修的是映射表（加上 `ERROR_TOO_MANY_REQUESTS`）。**「契约先行、实现后补」是可以接受的；「契约先行但契约本身错」不行。**
-**#7 / #10 死代码**：`users.py` 里的无用分支、`AgentPlayground.tsx` 里一个恒真 className。删除，没有新增测试（死代码无法为它写有意义的测试；由 `ruff check` 与 422 测试保证没删掉行为）。
+**#7 / #10 死代码**：`users.py` 里的无用分支、`AgentPlayground.tsx` 里一个恒真 className。删除，没有新增测试（死代码无法为它写有意义的测试；由 `ruff check` 与 423 测试保证没删掉行为）。
 **#9 恒空字段**：`ChatResponse` 有 `sources: list[dict]` 与 `tool_calls: list[dict]`，但 `POST /api/chat` 走的是直连网关路径，**永远填不上**。
 - 我当时的处理：在字段上写注释说明「chat 路径不填，供未来 agent-mode 统一响应使用」；
 - 我复查后的判断：**这是次优的**。正确做法是要么删掉（本项目不需要向后兼容 —— 这也是我的项目纪律），要么让 `/api/chat` 在 `mode=agent` 时真的走 AgentService 并填上。今天它是个「引诱前端写错代码」的字段。**我把它作为 §22 待办而不是辩护对象。**
@@ -4843,7 +4843,7 @@ class ModelResponse:
 
 - `git show 460a6ee -- app/gateway/base.py`（证明重复声明由这次修复引入）
 - 当前代码：`app/gateway/base.py::ModelResponse` 只有一份 `content: str`（重复行已删）
-- 当前文档：`README.md` 测试数 = 实测 `422 passed`；权限路径已统一为 `app/auth/permissions.py`
+- 当前文档：`README.md` 测试数 = 实测 `423 passed`；权限路径已统一为 `app/auth/permissions.py`
 
 #### Follow-up Questions
 
@@ -4876,7 +4876,7 @@ class ModelResponse:
 平台声称解决「企业权限与可追责」，但检索层不接收 principal、metadata 里没有密级。今天语料全公开所以无实际泄露，**但这是运气不是设计**。更糟的是：被污染的公开文档能影响所有人的回答（间接 prompt injection 的入口，见 Q17-02）。
 修法（顺序即优先级）：metadata 落 `classification` + `allowed_roles/departments` → 检索**先过滤后排序** → 撤权失效通道 + 孤儿 chunk 对账 → **每条检索路径配负例测试**。
 **② 没有质量评测（因为它让「效果」这件事我无法回答）**
-我有 422 个测试，全部是关于**行为**的（拒答话术、引用字段、参数被拒、权限判定）。没有任何一个数字能回答「DeepSeek 和 Qwen 哪个在我们场景更准」。而 `EMBEDDING_PROVIDER=mock` 的检索效果**不能外推**。
+我有 423 个测试，全部是关于**行为**的（拒答话术、引用字段、参数被拒、权限判定）。没有任何一个数字能回答「DeepSeek 和 Qwen 哪个在我们场景更准」。而 `EMBEDDING_PROVIDER=mock` 的检索效果**不能外推**。
 修法：50–100 条自有题（与语料快照同 Git 版本）→ 规则判分优先（数字/引用/是否拒答）→ `recall@k` 与 `faithfulness` 两个基础指标 → 多 provider 对比矩阵。**一周能出第一版**，这也是我在 §12 计划里给恒光的第一件事。
 **③ 生产必需面缺一大排（我会逐项给「为什么现在没有 + 什么条件触发我做」**
 真身份/SSO（本期禁止，且我不该在 Demo 里连外部 IdP）、限流与配额（无共享计数器，所以我第一次真正需要 Redis）、per-tool timeout 与取消传播（只有 provider 60s）、重试与熔断（刻意不做，因为幂等未解）、审计不可篡改（普通可写 SQLite）、token/成本指标（`usage` 已透传但没聚合）、P95/P99（只有均值与峰值）、增量 ingest（只有全量重建）、持久会话与多轮记忆（messages 每次重置）、多副本与横向扩展（SQLite+Chroma 本地文件锁死单节点）、密钥管理/轮转（只有 env）、依赖与密钥扫描（无 CI 安全步骤）、类型检查（无 mypy/pyright）、前端 E2E（只有 API 契约测试）。
@@ -5018,7 +5018,7 @@ class ModelResponse:
 
 #### My Project Evidence
 
-#1、#2、#8 的「已修」可当场指出：`grep -c "content: str" app/gateway/base.py` → 1；`grep -n "_records.clear()" app/observability/audit.py`；`tests/unit/test_audit.py::TestMemoryBound`；文档侧 `grep -rn "app/security\|301109" README.md data/` → 无匹配。#3–#7 仍可指位置（上表第三列），另有 `uv run pytest -q` → `422 passed` 与 `README.md` 对照。
+#1、#2、#8 的「已修」可当场指出：`grep -c "content: str" app/gateway/base.py` → 1；`grep -n "_records.clear()" app/observability/audit.py`；`tests/unit/test_audit.py::TestMemoryBound`；文档侧 `grep -rn "app/security\|301109" README.md data/` → 无匹配。#3–#7 仍可指位置（上表第三列），另有 `uv run pytest -q` → `423 passed` 与 `README.md` 对照。
 
 #### Follow-up Questions
 
@@ -5042,7 +5042,7 @@ class ModelResponse:
 
 #### 为什么危险
 
-422 个测试、5 天做完、7645 行 Python + 3133 行 TS + 4 份齐全文档——这个组合**本身就招问**。
+423 个测试、5 天做完、7645 行 Python + 3133 行 TS + 4 份齐全文档——这个组合**本身就招问**。
 
 #### 标准答案（照此说）
 
@@ -5067,7 +5067,7 @@ class ModelResponse:
 #### 标准答案
 
 「每样都只有一层——**这是我刻意选的**。我要的是每条主链路端到端跑通、边界正确，而不是把某一个模块做深。
-验证「这层多薄」的方式：① 422 个测试不是快照测试，它们断言的是**行为**（越权必须拒绝、无依据必须拒答、降级必须打标、mock 失败不再降级、参数越界必须变成受控失败）；② 我能当场列出**没做什么**：没有 rerank、没有 BM25 混合检索、没有会话记忆、没有流式输出、没有 per-tool timeout、没有增量 ingest、没有文档级 ACL、没有成本指标、没有评测集——这 9 条我写在 §22 里。
+验证「这层多薄」的方式：① 423 个测试不是快照测试，它们断言的是**行为**（越权必须拒绝、无依据必须拒答、降级必须打标、mock 失败不再降级、参数越界必须变成受控失败）；② 我能当场列出**没做什么**：没有 rerank、没有 BM25 混合检索、没有会话记忆、没有流式输出、没有 per-tool timeout、没有增量 ingest、没有文档级 ACL、没有成本指标、没有评测集——这 9 条我写在 §22 里。
 所以准确说法是：**边界是完整的，深度是单层的**。我把它当地基不当成品。如果它只是皮，那它连皮的功能都过不了自己的测试——我特意让测试覆盖失败路径，不是只覆盖 happy path。」
 
 #### 加分动作
@@ -5146,7 +5146,7 @@ class ModelResponse:
 #### 标准答案
 
 「如果公司已经有一个 one-api，**我会把 `OpenAICompatibleProvider` 的 base_url 指过去，然后删掉我自己那 60 行网关代码**。这不是认输，这是它的正确用法：我的抽象是「业务代码只走一个出口」，出口后面是进程内 router 还是外部服务，是部署决策，不是契约决策。
-差别在哪：one-api 是**独立进程 + 独立运维面**，它擅长渠道管理、令牌分发、计费、多模型故障转移。我这个是**进程内一层**，它做 one-api 做不了的那部分：把「降级要打标（`degraded`）」带到 `ModelResponse` 让 Agent loop 能分支；把 provider/model 名写进审计行；在出口前拦参数校验；让 422 个测试零网络可跑。
+差别在哪：one-api 是**独立进程 + 独立运维面**，它擅长渠道管理、令牌分发、计费、多模型故障转移。我这个是**进程内一层**，它做 one-api 做不了的那部分：把「降级要打标（`degraded`）」带到 `ModelResponse` 让 Agent loop 能分支；把 provider/model 名写进审计行；在出口前拦参数校验；让 423 个测试零网络可跑。
 `[PRODUCTION_NEXT]` 我心中的生产组合：**one-api 负责渠道与配额，我这一层负责语义契约**，两者不互相替代。所以如果你意思是「你是不是重复造轮子」，我的答案是：在这个 Demo 的范围里，我造的这一段（语义契约）轮子上没有；在生产里我会把渠道那一层让给专门的轮子。」
 
 #### 加分动作
@@ -5574,7 +5574,7 @@ vLLM（吞吐/连续批处理/PagedAttention）而不是裸 HF transformers 起 
 
 #### Standard Answer
 
-`[MY DESIGN]` 已实测（可指证据）：422 个测试全跑 **约 15 秒**（23 个文件、含 6 篇文档的临时 Chroma 与 mock embedding）；`/health`、`/metrics`、`/api/knowledge/documents` 都在毫秒级（测试里用 `TestClient` 直接断言，没有慢用例）；Docker 的 `start_period: 40s` 是因为 Chroma 首次加载需要时间（这是我在部署阶段实测出来的）。
+`[MY DESIGN]` 已实测（可指证据）：423 个测试全跑 **约 15 秒**（23 个文件、含 6 篇文档的临时 Chroma 与 mock embedding）；`/health`、`/metrics`、`/api/knowledge/documents` 都在毫秒级（测试里用 `TestClient` 直接断言，没有慢用例）；Docker 的 `start_period: 40s` 是因为 Chroma 首次加载需要时间（这是我在部署阶段实测出来的）。
 `[INFERENCE]` 结构性判断（我会这样标注）：
 1. **模型调用占绝对主导**：RAG 一次问答 = 1 次 embedding + 1 次向量查询 + 1 次 chat；Agent 一次运行 = `steps` 次 chat + 工具查询。provider 超时 `60.0` 秒，意味着一次 Agent 运行最坏可占用分钟级；而 `max_steps=5` 把上界钉成了「5 次模型调用 + 8 次工具调用」——**这是性能上限的设计定义，不是估算**。
 2. **本地 mock 路径「很快」不能外推到真实 provider**，这条我要主动说。
@@ -5683,7 +5683,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 - 模型侧：先直连端点确认是端点故障还是网络/配额。此时**开 `LLM_FALLBACK` 之前先想清代价**：它给的是「格式正常的无意义答案」，所以它属于**需要决策者知情才能启用的降级**——我会明报「现在可选 A 报错 / B 降级并告知用户」，而不是自己按开关。这是对 §6 Q6-04 的兑现。
 - 更好的止血是**摘能力**：把受影响 provider 从注册里去掉（或 `LLM_PROVIDER=mock` 只保检索与工具），因为平台核心价值之一是「有据的检索」，它不依赖生成也能给引用清单。
 - 存储侧：SQLite 锁 → 停写路径（关 ingest、暂停可写操作），或按预案恢复备份。
-**T+30 修复与验证**：定位到具体异常类型（日志 `error_type` + request_id），修，**跑全量 422 测试**，再灰度恢复。
+**T+30 修复与验证**：定位到具体异常类型（日志 `error_type` + request_id），修，**跑全量 423 测试**，再灰度恢复。
 **T+1 天 复盘产出**：① 这次故障有没有一条测试能提前抓住？没有就写；② 有没有指标能提前 10 分钟报警？没有就补（如 `audit_write_failure_count`）；③ 用户侧可见性够不够（「502 时前端显示了什么」最常在复盘时被想起）；④ 是否要在 §11 的阶段计划里调优先级（例如「多 provider + 熔断」被这次故障证明了优先级）。
 **我不做的三件**：不重启了之（它掩盖 provider 抖动与内存问题的区别）；不在没有 request_id 证据时改代码；不把「开了 fallback」当修复。
 
@@ -5708,8 +5708,8 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 | 维度 | 数字 | 我怎么验证 / 在哪 |
 |---|---|---|
-| 测试总数 | **422 passed**（单元 291 + 集成 131），23 个测试文件 | `uv run pytest -q` → `422 passed, 2 warnings in ~15s`；`--collect-only -q` 分文件计数 |
-| 测试增长轨迹 | Day1–3 `139` → Day4 `380` → Day5 `410` → 代码基线 `460a6ee` 时 `420` → 当前 `422` | `README.md` 测试基线行（**已与实测一致**）+ `--collect-only -q` |
+| 测试总数 | **423 passed**（单元 291 + 集成 132），23 个测试文件 | `uv run pytest -q` → `423 passed, 2 warnings in ~15s`；`--collect-only -q` 分文件计数 |
+| 测试增长轨迹 | Day1–3 `139` → Day4 `380` → Day5 `410` → 代码基线 `460a6ee` 时 `420` → 后续 `422` → 当前 `423` | `README.md` 测试基线行（**已与实测一致**）+ `--collect-only -q` |
 | Python 代码量 | `app/` 63 个 .py 文件，**7649 行** | `find app -name '*.py' \| xargs wc -l` |
 | 测试代码量 | 24 个 .py，**4639 行** | 同法 |
 | 前端代码量 | `web/src` 17 个 .ts/.tsx，**3133 行**（5 个页面，无 UI 框架） | `find web/src -name '*.ts*' \| xargs wc -l` |
@@ -5744,7 +5744,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 ## 27.3 我可以现场做的四件事（提前确认环境能跑）
 
-1. `uv run pytest -q` → 约 15 秒 422 绿（**证明「422」不是嘴说的**）；
+1. `uv run pytest -q` → 约 15 秒 423 绿（**证明「423」不是嘴说的**）；
 2. `docker compose up --build` → 打开 `:3000` 跑 `DEMO_SCRIPT.md` 六步（约 5 分钟）；
 3. 演示越权：Dashboard 切到 operator → Agent 问采购金额 → 时间线里出现 `PERMISSION_DENIED` 但页面不崩（`DEMO_SCRIPT.md` Step 5）；
 4. 演示追溯：拿 Step 3 的 `request_id` 打开 Audit 面板，一条链看到 `agent.run` + `tool.call` + `chat.complete`（Step 6/7）。
@@ -5753,7 +5753,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 #### Pitfalls
 
 - 报数字前先说**量级与条件**（「6 篇公开文档 45 个 chunk」要紧跟「语料只有这个规模，所以检索质量不能外推」）。
-- 不要把「422 个测试」说成「测试覆盖率 100%」——我**没有**测覆盖率数字（无 `--cov` 配置）。准确表述：「422 个断言覆盖的行为路径，未测覆盖率」。
+- 不要把「423 个测试」说成「测试覆盖率 100%」——我**没有**测覆盖率数字（无 `--cov` 配置）。准确表述：「423 个断言覆盖的行为路径，未测覆盖率」。
 
 ---
 
@@ -5949,13 +5949,13 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 |---|---|---|
 | 9 项修复 | 静默降级、401 泄露 token 形状、审计失败路径、工具 fail-open、内存无界等，**全部有对应测试** | `git show 460a6ee` |
 | 修复自己引入 2 缺陷 | `content: str` 重复声明；`clear()` 把有界 deque 换无界 list —— **两处均已修正** | Q21-04 / Q22-04 |
-| 文档漂移 3 处 **已修** | README 测试数（现为 422）、`app/security/permissions.py` → `app/auth/permissions.py`、合成数据 README 代码 `301109.SZ` → **301118.SZ** | §34 |
+| 文档漂移 3 处 **已修** | README 测试数（该轮修至 422，现为 423）、`app/security/permissions.py` → `app/auth/permissions.py`、合成数据 README 代码 `301109.SZ` → **301118.SZ** | §34 |
 | 高危 9 题 | AI 生成？皮？ERP 哪来的？为什么不用 Dify？one-api？没化工背景？没上线过？死模块？ | §23，每题有红线 |
 | 不知道怎么办 | 四句结构 + 三档表述（读过/了解/上线过）+ 6 条红线 | §24 |
 
 ## 31.4 数字速记（只记这几个）
 
-`422 passed`（约 15s）· `7649` Python 行 · `3133` 前端行 · `6 docs / 45 chunks` · `11 endpoints` · `4 tools / 12 operations` · `3 roles / 10 permissions` · `9 tables` · `8 runtime deps` · `5 defects 自审发现（其中 3 处文档漂移 + 2 处代码缺陷已修）` · `恒光 301118.SZ` · `代码证据基线 460a6ee（当时 420 tests / 7 commits）`。
+`423 passed`（约 15s）· `7649` Python 行 · `3133` 前端行 · `6 docs / 45 chunks` · `11 endpoints` · `4 tools / 12 operations` · `3 roles / 10 permissions` · `9 tables` · `8 runtime deps` · `5 defects 自审发现（其中 3 处文档漂移 + 2 处代码缺陷已修）` · `恒光 301118.SZ` · `代码证据基线 460a6ee（当时 420 tests / 7 commits）`。
 
 ---
 
@@ -6012,7 +6012,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 `[MY DESIGN]` 我的立场（`[需要本人确认：个人底线与期望数字]`）：
 ① **顺序**：技术面与交叉面不主动提数字；HR 面如果对方先开价，我回「我了解到岗位范围是 8k–1.2w，我更在意整体包（基数/调薪周期/公积金比例/绩效结构），您方便先给一个完整的 offer 构成吗」——**把谈判对象从月薪拉到整包**，这是最便宜的一步。
-② **锚点用交付物不用形容词**：「我独立交付了一个 422 个测试、可 Docker 部署、含权限审计网关的统一平台原型；贵司 JD 的九项职责里有七项是它的目录结构。」这句话的价值是**让 HR 有东西可以向上汇报**——HR 谈薪要的是理由，我给她理由。
+② **锚点用交付物不用形容词**：「我独立交付了一个 423 个测试、可 Docker 部署、含权限审计网关的统一平台原型；贵司 JD 的九项职责里有七项是它的目录结构。」这句话的价值是**让 HR 有东西可以向上汇报**——HR 谈薪要的是理由，我给她理由。
 ③ **区间而非单点**：给出 10–1.2w 的区间 + 说明 1.2w 对应什么（例：含私有化部署与模型评测全责）。单点报价只给对方一个砍的点。
 ④ **可被拒绝的部分提前想好**：到岗时间、驻场、出差、加班费——这些是我「可以答应但需要确认」的清单，而不是「为了拿到 offer 先答应」的清单（§24 红线第 6 条）。
 ⑤ **拿到书面 offer 前所有口头承诺不算数**。
@@ -6081,7 +6081,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 | 本期范围与禁止清单 | `SPEC.md` §0（1714 行） |
 | 快速开始 / 已知限制 / 测试基线（与实测一致） | `README.md`（246 行） |
 | 演示六步 | `DEMO_SCRIPT.md`（72 行） |
-| 测试实测 | `uv run pytest -q` → `422 passed, 2 warnings`（约 15s） |
+| 测试实测 | `uv run pytest -q` → `423 passed, 2 warnings`（约 15s） |
 | 静态检查实测 | `uv run ruff check .` PASS；`uv run ruff format --check .` **PASS** |
 | 自审提交 | `git log -1` → `460a6ee fix: address audit security and reliability findings` |
 | 合成数据与语料声明 | `data/synthetic/README.md`、`data/documents/README.md` |
@@ -6115,7 +6115,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 - 我**没有**化工行业生产系统经验、**没有**真实 ERP 对接经验、**没有** GPU/私有推理运维经验、**没有**这个平台的监控/告警生产配置（只有指标端点）。
 - 所有 `恒光内部现状`（用什么系统、出域政策、数据现状）为 `[INFERENCE]` 或未确认，入职第一周核对。
-- 数字类主张只报可本地复核者：422 tests / 约 15s / 7649 行 / 6 docs / 45 chunks / 9 tables / 4 tools / 12 operations / 11 endpoints（代码证据基线 `460a6ee` 时另记 420 tests / 7 commits）。
+- 数字类主张只报可本地复核者：423 tests / 约 15s / 7649 行 / 6 docs / 45 chunks / 9 tables / 4 tools / 12 operations / 11 endpoints（代码证据基线 `460a6ee` 时另记 420 tests / 7 commits）。
 
 ---
 
@@ -6135,7 +6135,7 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 ## 36.3 面试前 24 小时动作清单
 
-- [ ] `uv run pytest -q`（约 15s，422）；`uv run ruff check .` 与 `uv run ruff format --check .`（均应 PASS）；`docker compose up --build` 走一遍 `DEMO_SCRIPT.md` 六步；
+- [ ] `uv run pytest -q`（约 15s，423）；`uv run ruff check .` 与 `uv run ruff format --check .`（均应 PASS）；`docker compose up --build` 走一遍 `DEMO_SCRIPT.md` 六步；
 - [ ] 把 `[需要本人确认]` 全部填完（姓名/学历/年限、薪资底线、到岗时间、AI 工具使用说明、前雇主事实、GPU 经验有无）；
 - [ ] §34 的 10 条：#1–#5 与 #10 已在最终一致性修复提交里关闭；面试前只需复核这张表，并决定 #6–#9 是否开新提交；
 - [ ] 背：§31 全表 + §1（60s/90s 两版）+ §23 九题的 Short Answer + §24 四句模板；
@@ -6146,5 +6146,5 @@ curl -s -H "Authorization: Bearer <admin>" ":8000/api/audit?status=error"
 
 - §11/§26/§28 里的生产化方案**没有一条被验证过**，全部是判据与触发条件（这是刻意设计：不验证的建议只配写成判据）；
 - §35.2 的财务数字来自年报摘要的公开转载口径，**科目级数字未在原文核对**（已标注）；
-- 全材料**没有**任何真实用户/生产数据支撑的效果结论；所有「检索质量好/Agent 稳定」的表述都限定在「422 个行为测试」之内（§7 Q7-12 的口径）；
+- 全材料**没有**任何真实用户/生产数据支撑的效果结论；所有「检索质量好/Agent 稳定」的表述都限定在「423 个行为测试」之内（§7 Q7-12 的口径）；
 - 本材料 2026-10-01 之后若 `HEAD` 前进，§34 的核对命令结果可能变化——**复核 §27 与 §34 只需 5 分钟，先于阅读正文**。

@@ -59,7 +59,7 @@
 - [x] **Day 5 产品化**：Web Console（Dashboard / Agent Playground / Knowledge / Audit / Settings，角色切换 UI，RBAC 边界可见，trace 可视化，真实 API 数据，指标面板）；Docker 最终验证（API + Web，重启数据持久）；真实 LLM provider 冒烟；README / ARCHITECTURE / DEMO_SCRIPT 定稿
 
 > 测试基线（历史轨迹，数字对应各自完成时点）：Day 1–3 `139 passed` → Day 4 后 `380 passed` → Day 5 后 `410 passed`
-> → Audit Fix（`460a6ee`）后 `420 passed` → 当前（一致性修复 + `AuditLog.clear()` 回归测试）`422 passed` → 本轮实机调试（拒绝审计 action 归一 + 网关 5xx 识别）`423 passed`。
+> → Audit Fix（`460a6ee`）后 `420 passed` → 一致性修复 + `AuditLog.clear()` 回归测试后 `422 passed` → 本轮实机调试（拒绝审计 action 归一 + 网关 5xx 识别）`423 passed`。
 > 所有 Day 1–5 测试未删除、未弱化；Day 5 新增 30 个 Web Console 契约测试，本次新增 2 个审计内存上界回归测试。
 
 > **基线口径**：本文档中 `460a6ee` 指**代码证据基线**（Day 1–5 + Audit Fix）。本轮之后的提交只改文档与两处代码一致性缺陷，不改变架构结论。

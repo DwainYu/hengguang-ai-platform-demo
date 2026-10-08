@@ -66,7 +66,7 @@
 ## Step 8 — 30 秒：收尾 + 可选真实 LLM
 
 - 总结能力栈：Model Gateway / RAG / Agent / ERP·Safety Tool / RBAC / Audit / Metrics / Docker。
-- 可选：展示 `LLM_PROVIDER=openai-compatible` 切到真实 provider（ModelScope DeepSeek）后，
+- 可选：展示切到真实 provider（当前实跑：`LLM_PROVIDER=modelscope` + ModelScope 端点 + `Qwen/Qwen3.8-Flash-Next`）后，
   同一问句由真实模型生成回答，**引用与审计链路完全不变**。
 - 收尾话术：平台层已收敛模型、知识、业务、权限、审计；下一步是接真实身份（JWT/SSO）、
   真实业务系统与灰度放量。

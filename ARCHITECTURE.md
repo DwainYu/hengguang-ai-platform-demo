@@ -96,7 +96,7 @@ FastAPI (ASGI 中间件：request_id → 鉴权 → 路由 → 业务)
    │      └── Trace（llm / tool_call / final / stopped）
    ├── RAG（knowledge_search → Chroma → citation）
    ├── 合成 SQLite（operation 白名单 + 参数化 SQL：ERP / Safety）
-   ├── AuditLog（request_id 贯穿：http.request / agent.run / tool.call）
+   ├── AuditLog（入库三类：api / agent.run / tool.call，用 request_id 贯穿）
    └── Metrics（请求 / 工具 / Agent / 拒绝 / 延迟）
 ```
 
@@ -127,7 +127,7 @@ Web Console (浏览器)
   → 引用 [n] + document metadata（title / section / source / url）
   → LLM 生成最终回答 + sources
   → Trace：llm / tool_call / final（含 latency_ms、status、error_code）
-  → AuditLog：agent.run + tool.call + http.request（同一 request_id）
+  → AuditLog：agent.run + tool.call（同一 request_id）；http.request 只作为结构化日志事件参与指标计数，不写 audit_logs 表
   → Metrics：请求 +1、工具调用 +1、延迟更新
   → Web Console 渲染：回答、trace 时间线、工具调用、引用、指标
 ```
