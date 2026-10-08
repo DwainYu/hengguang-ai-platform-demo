@@ -102,16 +102,20 @@ class ModelGateway:
         """
 
         settings = get_settings()
+        active_provider = settings.llm_provider
         models: list[dict] = []
         for name, prov in self._providers.items():
             provider_name = getattr(prov, "provider_name", name)
             model_name = getattr(prov, "_default_model", "") or _fallback_model(provider_name)
+            # A provider is the active default when LLM_PROVIDER matches either its
+            # registration key or the display name it infers from its base URL.
+            is_default = provider_name == active_provider or name == active_provider
             models.append(
                 {
                     "provider": provider_name,
                     "model": model_name or "unknown",
                     "available": True,
-                    "default": provider_name == settings.llm_provider,
+                    "default": is_default,
                     "kind": "chat",
                 }
             )
@@ -120,7 +124,7 @@ class ModelGateway:
                 "provider": settings.embedding_provider,
                 "model": settings.embedding_model or "mock-embedding",
                 "available": True,
-                "default": False,
+                "default": True,
                 "kind": "embedding",
             }
         )
