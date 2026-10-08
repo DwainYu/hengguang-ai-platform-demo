@@ -100,7 +100,7 @@ Web Console 开发模式（可选，热更新）：
 ```bash
 cd web
 npm install
-npm run dev                        # http://localhost:5173（代理到 :8000）
+npm run dev                        # http://localhost:5173（默认代理到 :8000，可用 VITE_API_PROXY_TARGET 覆盖）
 ```
 
 生产构建 / 验证前端：
@@ -185,11 +185,15 @@ export LLM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731         # 该端点上可用
 | SQLite | `data/runtime/app.db` | `data/local-real-embedding/app.db` |
 | `RAG_MIN_SCORE` | 0.15 | 0.15 |
 | 端口 | API `8000` / Web `3000` | API `127.0.0.1:8001`（不动 Docker 栈） |
+| Web 入口 | nginx `:3000`（反代容器内 `api:8000`） | `npm run dev:local` → `:5173`（Vite proxy → `:8001`） |
 
 ```bash
 ollama pull qwen3-embedding:0.6b          # 约 639 MB，一次性
 cp .env.local.example .env.local          # 可选，脚本内置同一套默认值
 ./scripts/run-local-real-embedding.sh     # 探测 Ollama / 模型 / 维度 → 起 :8001 → 首次自动 ingest
+
+# 用本地 Web Console 驱动这个实例（同源 dev proxy，不需要 CORS）
+cd web && npm run dev:local             # 等价于 VITE_API_PROXY_TARGET=http://127.0.0.1:8001 npm run dev
 ```
 
 脚本自带隔离守护：`CHROMA_PATH` 落到 `data/runtime/chroma`、`DATABASE_URL` 落到 `data/runtime/app.db`、
@@ -205,9 +209,12 @@ cp .env.local.example .env.local          # 可选，脚本内置同一套默认
 
 限制（本分支已知边界，不夸大）：
 
-- **Web Console 仍连 Docker API**：nginx 反代上游是容器内的 `api:8000`，Vite dev proxy 目标写死
-  `127.0.0.1:8000`，后端也没挂 CORS 中间件（跨域预检返回 405），因此 `:3000` / `:5173` 都驱动不了 `:8001`。
-  要在浏览器里看真实 embedding 的检索效果，用 `http://127.0.0.1:8001/docs`（Swagger）或 curl。
+- Web Console 连本地真实实例用 **Vite dev proxy**：`web/vite.config.ts` 的代理目标取自
+  `VITE_API_PROXY_TARGET`（默认 `http://127.0.0.1:8000`，Docker/main 行为不变）。浏览器始终请求同源
+  `:5173`，由 dev server 转发到 `:8001`，**因此不需要给后端加 CORS**，也不改 nginx 生产配置。
+  `:3000` 那个容器 Console 的反代上游是容器 DNS `api:8000`，它仍然只走 Docker 默认（mock）路径。
+- `/api/*` 目前没有声明 OpenAPI `securitySchemes`，所以 `:8001/docs`（Swagger）无法代填 Bearer，
+  鉴权端点在 Swagger 里会返回 401；带 token 的验证请用 `npm run dev:local` 的 Web Console 或 curl。
 - 不同 provider 的向量空间互不兼容：切换 embedding 必须同时换 `CHROMA_PATH` + `CHROMA_COLLECTION` 并重新
   ingest，不能往已有 collection 里混写（实测两套向量互比余弦 ≈ 0）。
 - 未做 Instruct 前缀、reranker、query rewrite。
