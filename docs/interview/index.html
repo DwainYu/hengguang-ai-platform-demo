@@ -2757,7 +2757,7 @@ raise RuntimeError(f"Model provider error: {e}") from e</code></pre>
 
 <p><code>[MY DESIGN]</code> 配置：默认 <code>RAG_TOP_K=5</code>；<code>/api/knowledge/search</code> 的 <code>top_k</code> 允许 1–20（<code>MAX_TOP_K=20</code>）；<code>knowledge_search</code> 工具参数 1–10、默认 5。</p>
 
-<p>实际检索时我<strong>过取</strong>：<code>OVER_FETCH=4</code>，即取 <code>min(top_k*4, MAX_CANDIDATES=200)</code> 条候选，融合打分重排后截 top_k，再按 <code>rag_min_score=0.10</code> 过滤。</p>
+<p>实际检索时我<strong>过取</strong>：<code>OVER_FETCH=4</code>，即取 <code>min(top_k*4, MAX_CANDIDATES=200)</code> 条候选，融合打分重排后截 top_k，再按 <code>rag_min_score=0.12</code> 过滤（历史上先用 0.10、又按第一轮 A/B 提到 0.15，第二轮双空间实测后统一为 0.12，见 README「Local Real Embedding」）。</p>
 
 <p>为什么过取：我的 lexical 信号（CJK bigram 重合率）能把向量排名靠后的真正相关项提上来；如果只在向量 top_k 内重排，提升空间被卡住。</p>
 
@@ -2969,7 +2969,7 @@ raise RuntimeError(f"Model provider error: {e}") from e</code></pre>
 
 <p><code>[MY DESIGN]</code> 我在代码里做的四件事：</p>
 
-<p>① <strong>收紧上下文</strong>：<code>rag_min_score=0.10</code> 过滤 + top_k=5。无关证据是幻觉的直接燃料，因为它让模型以为「这些里总有一个是答案」。</p>
+<p>① <strong>收紧上下文</strong>：<code>rag_min_score=0.12</code> 过滤 + top_k=5。无关证据是幻觉的直接燃料，因为它让模型以为「这些里总有一个是答案」。</p>
 
 <p>② <strong>策略写进 prompt</strong>（<code>app/rag/prompt.py::RAG_SYSTEM_PROMPT</code> 六条）：优先只用资料中出现的事实；资料不足必须明确说「当前知识库没有足够信息」，不编造数据；<strong>不得虚构任何数字、产能、财务指标或产品名称</strong>；用 <code>[编号]</code> 标注引用；<strong>区分事实 / 推测 / 建议</strong>，对后两者要明确说明；本项目只使用公开资料、不构成投资建议。</p>
 

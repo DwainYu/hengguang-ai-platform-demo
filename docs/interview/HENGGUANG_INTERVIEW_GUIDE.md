@@ -1550,7 +1550,7 @@ raise RuntimeError(f"Model provider error: {e}") from e
 #### Standard Answer
 
 `[MY DESIGN]` 配置：默认 `RAG_TOP_K=5`；`/api/knowledge/search` 的 `top_k` 允许 1–20（`MAX_TOP_K=20`）；`knowledge_search` 工具参数 1–10、默认 5。
-实际检索时我**过取**：`OVER_FETCH=4`，即取 `min(top_k*4, MAX_CANDIDATES=200)` 条候选，融合打分重排后截 top_k，再按 `rag_min_score=0.10` 过滤。
+实际检索时我**过取**：`OVER_FETCH=4`，即取 `min(top_k*4, MAX_CANDIDATES=200)` 条候选，融合打分重排后截 top_k，再按 `rag_min_score=0.12` 过滤（历史上先用 0.10、又按第一轮 A/B 提到 0.15，第二轮双空间实测后统一为 0.12，见 README「Local Real Embedding」）。
 为什么过取：我的 lexical 信号（CJK bigram 重合率）能把向量排名靠后的真正相关项提上来；如果只在向量 top_k 内重排，提升空间被卡住。
 为什么要 `min_score` 硬过滤：**宁可少给证据，也不给无关证据**。塞进 prompt 的无关块会同时伤害两件事——模型引错来源的概率，以及「看起来有据」的误导性。
 选 k 的流程（`[PRODUCTION_NEXT]`）：① 评测集看「金标证据是否进 top-k」→ 决定下限；② 看引用正确率/幻觉率随 k 的变化曲线 → 取拐点左侧；③ 若需要 k>10 才够召回，说明该上 rerank 或上下文压缩，而不是硬塞。
@@ -1665,7 +1665,7 @@ raise RuntimeError(f"Model provider error: {e}") from e
 #### Standard Answer
 
 `[MY DESIGN]` 我在代码里做的四件事：
-① **收紧上下文**：`rag_min_score=0.10` 过滤 + top_k=5。无关证据是幻觉的直接燃料，因为它让模型以为「这些里总有一个是答案」。
+① **收紧上下文**：`rag_min_score=0.12` 过滤 + top_k=5。无关证据是幻觉的直接燃料，因为它让模型以为「这些里总有一个是答案」。
 ② **策略写进 prompt**（`app/rag/prompt.py::RAG_SYSTEM_PROMPT` 六条）：优先只用资料中出现的事实；资料不足必须明确说「当前知识库没有足够信息」，不编造数据；**不得虚构任何数字、产能、财务指标或产品名称**；用 `[编号]` 标注引用；**区分事实 / 推测 / 建议**，对后两者要明确说明；本项目只使用公开资料、不构成投资建议。
 ③ **让引用可机器校验**：context 块用固定格式 `[n] 标题 > 章节`，答案里的 `[n]` 必须能对上 `sources[]` 里的 document_id/section/url——「有没有据」于是变成一个可检查的属性，而不是一种观感。
 ④ **拒答路径有测试**：无依据时的话术（「没有足够信息 + 先 ingest 或换问法」）在 `tests/unit/test_pipeline.py`、`tests/integration/test_knowledge.py` 里被断言，也就是说它不是靠 prompt 祈祷，而是有回归保护。

@@ -183,7 +183,7 @@ export LLM_MODEL=Qwen/Qwen3.8-Flash-Next                   # 当前实测模型�
 | Embedding | `mock` | Ollama `qwen3-embedding:0.6b`（1024 维） |
 | 向量库 | `data/runtime/chroma` · `hengguang_knowledge` | `data/local-real-embedding/chroma` · `hengguang_knowledge_qwen3` |
 | SQLite | `data/runtime/app.db` | `data/local-real-embedding/app.db` |
-| `RAG_MIN_SCORE` | 0.15 | 0.15 |
+| `RAG_MIN_SCORE` | 0.12 | 0.12 |
 | 端口 | API `8000` / Web `3000` | API `127.0.0.1:8001`（不动 Docker 栈） |
 | Web 入口 | nginx `:3000`（反代容器内 `api:8000`） | `npm run dev:local` → `:5173`（Vite proxy → `:8001`） |
 
@@ -203,9 +203,14 @@ cd web && npm run dev:local             # 等价于 VITE_API_PROXY_TARGET=http:/
 
 本地 A/B 实测（同一份 6 篇文档 / 45 chunk，只换 embedding，其余配置一致）：域内查询 top1 融合分从 mock 的
 0.24–0.59 升到 0.34–0.74，物料/产品表格块从第 2–5 位升到第 1 位；无关问题在两种模式下都拿不到有效证据。
-这是小样本演示级测量，**不是生产 benchmark**。换真实向量后融合分尺度整体抬高，所以 mock 下几乎不起作用的
-0.10 阈值在真实模式下会漏进无关结果：实测干净带为 `(0.1146, 0.1861]`（域外最高 0.1146 / 域内次位最低 0.1861），
-取 **0.15**。该数值只属于对应的那一个 collection，换 embedding 模型必须重新标定。
+这是小样本演示级测量，**不是生产 benchmark**。换真实向量后融合分尺度整体抬高，第一轮据此把阈值从 0.10 提到
+**0.15**——但当时只测了 Qwen3 一侧的干净带 `(0.1146, 0.1861]`。第二轮把同一组查询同时打进两个空间后推翻了这个
+单值：mock 空间里合法域内查询「氯酸钠有什么用途」top1 只有 0.1424（两篇文档的小语料更低到 0.1244），0.15 会
+把它直接滤成空，而同一条查询在 Qwen3 空间是 0.4272；反过来 0.15 也没让 Qwen3 空间干净（词面重叠的域外查询
+0.1673 照样进来）。两个空间都能用的窗口是 `(0.1041, 0.1244]`（mock 词面重叠域外最高 0.1041 / mock 合法域内
+最低 0.1244），所以 **v0.1.2 起两种模式统一取 `RAG_MIN_SCORE=0.12`**：mock 侧域内召回无损，Qwen3 侧域内第 5
+位最低 0.2077 远高于阈值，通用域外（mock ≤0.0683 / Qwen3 ≤0.1083）全部被挡住。阈值属于「融合分尺度」而不是
+模型本身，换 embedding 模型仍然必须重新标定。
 
 限制（本分支已知边界，不夸大）：
 
